@@ -2,18 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>A Dancehall on the Bayou</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   html, body {
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
     background: #0d0800;
     font-family: 'Georgia', serif;
     color: #f0e8d0;
-    touch-action: none;
   }
 
   #bg {
@@ -34,17 +32,18 @@
     inset: 0;
     background: radial-gradient(ellipse at 50% 40%, transparent 20%, rgba(5,2,0,0.65) 80%);
     z-index: 1;
+    pointer-events: none;
   }
 
   #ui {
-    position: fixed;
-    inset: 0;
+    position: relative;
     z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: 52px 28px 44px;
+    min-height: 100vh;
+    padding: 52px 28px 60px;
+    gap: 48px;
   }
 
   #title { text-align: center; }
@@ -76,6 +75,8 @@
     flex-direction: column;
     align-items: center;
     gap: 28px;
+    width: 100%;
+    max-width: 320px;
   }
 
   #play-btn {
@@ -101,7 +102,6 @@
 
   #progress-area {
     width: 100%;
-    max-width: 320px;
     display: flex;
     flex-direction: column;
     gap: 7px;
@@ -132,14 +132,13 @@
     letter-spacing: 0.05em;
   }
 
-  /* MOTION SECTION */
   #motion-area {
     width: 100%;
     max-width: 320px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
   }
 
   #orientation-hint {
@@ -161,7 +160,6 @@
 
   #orientation-text strong { color: #fff; }
 
-  /* Compass rose */
   #compass-wrap {
     display: flex;
     flex-direction: column;
@@ -188,7 +186,6 @@
     left: 50%;
     transform-origin: bottom center;
     transform: translateX(-50%) translateY(-100%) rotate(0deg);
-    transition: transform 0.1s ease;
   }
 
   #compass-needle-top {
@@ -236,12 +233,12 @@
   }
 
   #motion-btn {
-    padding: 10px 24px;
+    padding: 12px 28px;
     border-radius: 20px;
     border: 1px solid rgba(240, 200, 100, 0.4);
-    background: rgba(10, 5, 0, 0.5);
+    background: rgba(10, 5, 0, 0.6);
     color: #f0c070;
-    font-size: 13px;
+    font-size: 14px;
     letter-spacing: 0.06em;
     cursor: pointer;
     font-family: 'Georgia', serif;
@@ -284,16 +281,11 @@
   <div id="motion-area">
 
     <div id="orientation-hint">
-      <!-- Bird's eye view of phone sweeping left/right -->
-      <svg width="44" height="36" viewBox="0 0 44 36" fill="none" xmlns="http://www.w3.org/2000/svg" flex-shrink="0" style="flex-shrink:0">
-        <!-- Phone body top-down, landscape -->
+      <svg width="44" height="36" viewBox="0 0 44 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
         <rect x="8" y="12" width="28" height="12" rx="2.5" stroke="#f0c070" stroke-width="1.4" fill="none"/>
-        <!-- Camera dot -->
         <circle cx="33" cy="18" r="1.2" fill="#f0c070" opacity="0.6"/>
-        <!-- Left sweep arrow -->
         <path d="M7 18 Q3 10 7 4" stroke="#f0c070" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7"/>
         <path d="M7 4 L5 7 M7 4 L10 5.5" stroke="#f0c070" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
-        <!-- Right sweep arrow -->
         <path d="M37 18 Q41 10 37 4" stroke="#f0c070" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7"/>
         <path d="M37 4 L39 7 M37 4 L34 5.5" stroke="#f0c070" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
       </svg>
@@ -333,13 +325,16 @@
   const motionBtn = document.getElementById('motion-btn');
   const motionHint = document.getElementById('motion-hint');
 
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const panner = ctx.createStereoPanner();
-  const src = ctx.createMediaElementSource(audio);
+  const actx = new (window.AudioContext || window.webkitAudioContext)();
+  const panner = actx.createStereoPanner();
+  const src = actx.createMediaElementSource(audio);
   src.connect(panner);
-  panner.connect(ctx.destination);
+  panner.connect(actx.destination);
 
   let alphaOffset = null;
+  let smoothedPan = 0;
+  const SMOOTHING = 0.92; // higher = smoother but slower to respond
+  const SWEEP_RANGE = 120; // degrees of turn for full left-to-right
 
   function fmt(s) {
     const m = Math.floor(s / 60);
@@ -361,7 +356,7 @@
   });
 
   playBtn.addEventListener('click', () => {
-    if (ctx.state === 'suspended') ctx.resume();
+    if (actx.state === 'suspended') actx.resume();
     if (audio.paused) {
       audio.play();
       playBtn.innerHTML = '&#9646;&#9646;';
@@ -380,27 +375,32 @@
 
   function setPan(val) {
     val = Math.max(-1, Math.min(1, val));
-    panner.pan.value = val;
-    const deg = val * 90;
+    // Smooth the value
+    smoothedPan = smoothedPan * SMOOTHING + val * (1 - SMOOTHING);
+    panner.pan.value = smoothedPan;
+    const deg = smoothedPan * 90;
     compassNeedle.style.transform = `translateX(-50%) translateY(-100%) rotate(${deg}deg)`;
-    panReadout.textContent = val < -0.1 ? 'Left' : val > 0.1 ? 'Right' : 'Center';
+    panReadout.textContent = smoothedPan < -0.1 ? 'Left' : smoothedPan > 0.1 ? 'Right' : 'Center';
   }
 
   setPan(0);
 
   function handleOrientation(e) {
-    // alpha = compass heading 0-360 as you sweep phone horizontally
     if (e.alpha === null || e.alpha === undefined) return;
 
-    if (alphaOffset === null) alphaOffset = e.alpha;
+    // Calibrate center on first reading
+    if (alphaOffset === null) {
+      alphaOffset = e.alpha;
+      return;
+    }
 
     let delta = e.alpha - alphaOffset;
+    // Wrap delta to -180..180
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
 
-    // 180 degrees of sweep = full pan left or right (wider sweet spot)
-    const pan = Math.max(-1, Math.min(1, delta / 180));
-    setPan(pan);
+    const raw = delta / SWEEP_RANGE;
+    setPan(raw);
   }
 
   motionBtn.addEventListener('click', async () => {
