@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>A Dancehall on the Bayou</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: #0d0800;
+    font-family: 'Georgia', serif;
+    color: #f0e8d0;
+    touch-action: none;
+  }
+
+  #bg {
+    position: fixed;
+    inset: 0;
+    background-image: url('708616044_1631812425451533_4297030253631931157_n.jpg');
+    background-size: cover;
+    background-position: center 30%;
+    filter: brightness(0.38) sepia(0.25);
+    z-index: 0;
+    transition: filter 0.6s ease;
+  }
+
+  #bg.playing {
+    filter: brightness(0.5) sepia(0.2);
+  }
+
+  #vignette {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 40%, transparent 20%, rgba(5,2,0,0.75) 80%);
+    z-index: 1;
+  }
+
+  #ui {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 52px 28px 44px;
+  }
+
+  /* TITLE */
+  #title {
+    text-align: center;
+  }
+
+  #eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #9a7c50;
+    margin-bottom: 10px;
+  }
+
+  #main-title {
+    font-size: 26px;
+    font-weight: normal;
+    line-height: 1.25;
+    color: #f5e8cc;
+    letter-spacing: 0.02em;
+  }
+
+  #main-title em {
+    font-style: italic;
+    color: #c8a060;
+  }
+
+  /* CENTER PLAY AREA */
+  #center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+
+  #play-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(200, 160, 80, 0.45);
+    background: rgba(10, 5, 0, 0.55);
+    color: #c8a060;
+    font-size: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  #play-btn:active {
+    background: rgba(40, 20, 0, 0.7);
+    border-color: rgba(200, 160, 80, 0.8);
+  }
+
+  /* PROGRESS */
+  #progress-area {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  #progress-track {
+    width: 100%;
+    height: 2px;
+    background: rgba(200, 160, 80, 0.15);
+    border-radius: 1px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  #progress-fill {
+    height: 100%;
+    background: #c8a060;
+    border-radius: 1px;
+    width: 0%;
+    transition: width 0.15s linear;
+  }
+
+  #time-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #7a6040;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  /* MOTION / PAN SECTION */
+  #motion-area {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  #motion-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7a6040;
+    text-align: center;
+  }
+
+  #pan-bar {
+    width: 100%;
+    height: 1px;
+    background: rgba(200, 160, 80, 0.15);
+    position: relative;
+  }
+
+  #pan-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #c8a060;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: left 0.1s ease;
+  }
+
+  #pan-ends {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #5a4030;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 5px;
+  }
+
+  #motion-btn {
+    padding: 9px 22px;
+    border-radius: 20px;
+    border: 1px solid rgba(200, 160, 80, 0.3);
+    background: rgba(10, 5, 0, 0.45);
+    color: #c8a060;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #motion-hint {
+    font-size: 11px;
+    color: #7a6040;
+    text-align: center;
+    line-height: 1.5;
+    min-height: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+<div id="vignette"></div>
+
+<div id="ui">
+  <div id="title">
+    <div id="eyebrow">An immersive listening experience</div>
+    <h1 id="main-title">A Dancehall<br>on the <em>Bayou</em></h1>
+  </div>
+
+  <div id="center">
+    <button id="play-btn" aria-label="Play">&#9654;</button>
+    <div id="progress-area">
+      <div id="progress-track">
+        <div id="progress-fill"></div>
+      </div>
+      <div id="time-row">
+        <span id="t-current">0:00</span>
+        <span id="t-total">--:--</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="motion-area">
+    <div id="motion-label">Tilt to pan the sound</div>
+    <div id="pan-bar"><div id="pan-dot"></div></div>
+    <div id="pan-ends"><span>Left</span><span>Right</span></div>
+    <button id="motion-btn">Enable motion control</button>
+    <div id="motion-hint">Tilt your phone left or right to shift the stereo field</div>
+  </div>
+</div>
+
+<audio id="audio" src="11_dance_hall.mp3" preload="auto"></audio>
+
+<script>
+  const audio = document.getElementById('audio');
+  const bg = document.getElementById('bg');
+  const playBtn = document.getElementById('play-btn');
+  const progressFill = document.getElementById('progress-fill');
+  const progressTrack = document.getElementById('progress-track');
+  const tCurrent = document.getElementById('t-current');
+  const tTotal = document.getElementById('t-total');
+  const panDot = document.getElementById('pan-dot');
+  const motionBtn = document.getElementById('motion-btn');
+  const motionHint = document.getElementById('motion-hint');
+
+  // Web Audio for panning
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const panner = ctx.createStereoPanner();
+  const source = ctx.createMediaElementSource(audio);
+  source.connect(panner);
+  panner.connect(ctx.destination);
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  audio.addEventListener('loadedmetadata', () => {
+    tTotal.textContent = fmt(audio.duration);
+  });
+
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    progressFill.style.width = pct + '%';
+    tCurrent.textContent = fmt(audio.currentTime);
+  });
+
+  audio.addEventListener('ended', () => {
+    playBtn.innerHTML = '&#9654;';
+    bg.classList.remove('playing');
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (ctx.state === 'suspended') ctx.resume();
+    if (audio.paused) {
+      audio.play();
+      playBtn.innerHTML = '&#9646;&#9646;';
+      bg.classList.add('playing');
+    } else {
+      audio.pause();
+      playBtn.innerHTML = '&#9654;';
+      bg.classList.remove('playing');
+    }
+  });
+
+  progressTrack.addEventListener('click', (e) => {
+    const rect = progressTrack.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = pct * audio.duration;
+  });
+
+  // Pan
+  function setPan(val) {
+    val = Math.max(-1, Math.min(1, val));
+    panner.pan.value = val;
+    const pct = ((val + 1) / 2) * 100;
+    panDot.style.left = pct + '%';
+  }
+
+  setPan(0);
+
+  // Motion
+  motionBtn.addEventListener('click', async () => {
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      try {
+        const perm = await DeviceMotionEvent.requestPermission();
+        if (perm === 'granted') startMotion();
+        else motionHint.textContent = 'Motion permission denied.';
+      } catch(e) {
+        motionHint.textContent = 'Could not enable motion.';
+      }
+    } else if (window.DeviceOrientationEvent) {
+      startMotion();
+    } else {
+      motionHint.textContent = 'Motion not supported on this device.';
+    }
+  });
+
+  function startMotion() {
+    motionBtn.style.display = 'none';
+    motionHint.textContent = 'Tilt left or right to pan the audio';
+    window.addEventListener('deviceorientation', (e) => {
+      const gamma = e.gamma || 0;
+      setPan(gamma / 45);
+    });
+  }
+</script>
+</body>
+</html>
