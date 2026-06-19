@@ -277,7 +277,7 @@
         <path d="M37 18 Q41 10 37 4" stroke="#f0c070" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7"/>
         <path d="M37 4 L39 7 M37 4 L34 5.5" stroke="#f0c070" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
       </svg>
-      <div id="orientation-text">Hold phone <strong>flat and horizontal</strong> — tilt left or right to pan the sound</div>
+      <div id="orientation-text">Sweep your phone left or right to pan the sound — works in any orientation</div>
     </div>
 
     <div id="compass-wrap">
@@ -319,6 +319,8 @@
 
   let smoothedPan = 0;
   const SMOOTHING = 0.88;
+  let accumulatedAngle = 0;
+  let lastTime = null;
 
   function fmt(s) {
     const m = Math.floor(s / 60);
@@ -359,19 +361,29 @@
     panReadout.textContent = smoothedPan < -0.1 ? 'Left' : smoothedPan > 0.1 ? 'Right' : 'Center';
   }
 
-  function handleOrientation(e) {
-    // gamma = left/right tilt when phone is held flat in landscape
-    // ranges roughly -90 to +90; we use ±45 as full pan range
-    const gamma = e.gamma || 0;
-    const abs = Math.abs(gamma);
+  function handleMotion(e) {
+    if (!e.rotationRate) return;
+    const now = Date.now();
+    if (lastTime === null) { lastTime = now; return; }
+    const dt = (now - lastTime) / 1000; // seconds
+    lastTime = now;
 
-    setPan(gamma / 45);
+    // alpha = rotation rate around vertical axis (yaw) in degrees/sec
+    // negative to fix left/right direction
+    const yawRate = -(e.rotationRate.alpha || 0);
 
-    // Volume: full from 0-45°, fades 45-67°, silent beyond
+    // Accumulate rotation, dampen slowly back to center
+    accumulatedAngle += yawRate * dt;
+    accumulatedAngle *= 0.97; // slow drift back to center
+    accumulatedAngle = Math.max(-90, Math.min(90, accumulatedAngle));
+
+    const abs = Math.abs(accumulatedAngle);
+    setPan(accumulatedAngle / 90);
+
     if (abs <= 45) {
       audio.volume = 1;
-    } else if (abs <= 67) {
-      audio.volume = 1 - ((abs - 45) / 22);
+    } else if (abs <= 70) {
+      audio.volume = 1 - ((abs - 45) / 25);
       panReadout.textContent = 'Fading';
     } else {
       audio.volume = 0;
@@ -380,15 +392,15 @@
   }
 
   motionBtn.addEventListener('click', async () => {
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
       try {
-        const perm = await DeviceOrientationEvent.requestPermission();
+        const perm = await DeviceMotionEvent.requestPermission();
         if (perm === 'granted') startMotion();
         else motionHint.textContent = 'Motion permission denied.';
       } catch(e) {
         motionHint.textContent = 'Could not enable motion.';
       }
-    } else if (window.DeviceOrientationEvent) {
+    } else if (window.DeviceMotionEvent) {
       startMotion();
     } else {
       motionHint.textContent = 'Motion not supported on this device.';
@@ -398,7 +410,7 @@
   function startMotion() {
     motionBtn.style.display = 'none';
     motionHint.textContent = 'Sweep left or right — the sound will follow';
-    window.addEventListener('deviceorientation', handleOrientation);
+    window.addEventListener('devicemotion', handleMotion);
   }
 </script>
 </body>
