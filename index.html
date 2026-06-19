@@ -277,7 +277,7 @@
         <path d="M37 18 Q41 10 37 4" stroke="#f0c070" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7"/>
         <path d="M37 4 L39 7 M37 4 L34 5.5" stroke="#f0c070" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
       </svg>
-      <div id="orientation-text">Hold phone <strong>flat and horizontal</strong> — sweep left or right to pan the sound</div>
+      <div id="orientation-text">Hold phone <strong>flat and horizontal</strong> — tilt left or right to pan the sound</div>
     </div>
 
     <div id="compass-wrap">
@@ -293,7 +293,7 @@
     </div>
 
     <button id="motion-btn">Enable motion control</button>
-    <div id="motion-hint">Turn to find the music</div>
+    <div id="motion-hint">Tilt left or right to find the music</div>
   </div>
 </div>
 
@@ -317,10 +317,8 @@
   src.connect(panner);
   panner.connect(actx.destination);
 
-  let alphaOffset = null;
   let smoothedPan = 0;
   const SMOOTHING = 0.88;
-  const SWEEP_RANGE = 120;
 
   function fmt(s) {
     const m = Math.floor(s / 60);
@@ -362,23 +360,18 @@
   }
 
   function handleOrientation(e) {
-    if (e.alpha === null || e.alpha === undefined) return;
-    if (alphaOffset === null) { alphaOffset = e.alpha; return; }
-    let delta = e.alpha - alphaOffset;
-    if (delta > 180) delta -= 360;
-    if (delta < -180) delta += 360;
+    // gamma = left/right tilt when phone is held flat in landscape
+    // ranges roughly -90 to +90; we use ±45 as full pan range
+    const gamma = e.gamma || 0;
+    const abs = Math.abs(gamma);
 
-    const abs = Math.abs(delta);
+    setPan(gamma / 45);
 
-    // Pan: clamp to 90 degrees each side
-    setPan(Math.max(-1, Math.min(1, delta / 90)));
-
-    // Volume: full from 0-90°, fades to silence from 90-135°, silent beyond
-    if (abs <= 90) {
+    // Volume: full from 0-45°, fades 45-67°, silent beyond
+    if (abs <= 45) {
       audio.volume = 1;
-      panReadout.textContent = delta < -0.1 ? 'Left' : delta > 0.1 ? 'Right' : 'Center';
-    } else if (abs <= 135) {
-      audio.volume = 1 - ((abs - 90) / 45);
+    } else if (abs <= 67) {
+      audio.volume = 1 - ((abs - 45) / 22);
       panReadout.textContent = 'Fading';
     } else {
       audio.volume = 0;
