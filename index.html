@@ -398,8 +398,8 @@
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
 
-    // 90 degrees of sweep = full pan left or right
-    const pan = Math.max(-1, Math.min(1, delta / 90));
+    // 180 degrees of sweep = full pan left or right (wider sweet spot)
+    const pan = Math.max(-1, Math.min(1, delta / 180));
     setPan(pan);
   }
 
