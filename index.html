@@ -360,8 +360,9 @@
   }
 
   function handleOrientation(e) {
-    // Negate gamma to fix left/right flip
-    const gamma = -(e.gamma || 0);
+    // gamma = left/right tilt when phone is held flat in landscape
+    // ranges roughly -90 to +90; we use ±45 as full pan range
+    const gamma = e.gamma || 0;
     const abs = Math.abs(gamma);
 
     setPan(gamma / 45);
