@@ -2,49 +2,39 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>A Dancehall on the Bayou</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  html, body {
-    height: 100%;
-    overflow: hidden;
-    background: #0d0800;
+  body {
     font-family: 'Georgia', serif;
     color: #f0e8d0;
-    touch-action: none;
-  }
-
-  #bg {
-    position: fixed;
-    inset: 0;
+    background-color: #0d0800;
     background-image: url('708616044_1631812425451533_4297030253631931157_n.jpg');
     background-size: cover;
     background-position: center 30%;
-    filter: brightness(0.38) sepia(0.25);
-    z-index: 0;
-    transition: filter 0.8s ease;
+    background-attachment: fixed;
   }
 
-  #bg.playing { filter: brightness(0.52) sepia(0.18); }
-
-  #vignette {
+  /* Dark overlay as a pseudo-element on body */
+  body::before {
+    content: '';
     position: fixed;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 40%, transparent 20%, rgba(5,2,0,0.65) 80%);
-    z-index: 1;
+    background: rgba(5, 2, 0, 0.62);
+    z-index: 0;
+    pointer-events: none;
   }
 
   #ui {
-    position: fixed;
-    inset: 0;
-    z-index: 2;
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: 52px 28px 44px;
+    padding: 52px 28px 80px;
+    gap: 52px;
   }
 
   #title { text-align: center; }
@@ -63,7 +53,7 @@
     line-height: 1.25;
     color: #fff8ee;
     letter-spacing: 0.02em;
-    text-shadow: 0 1px 12px rgba(0,0,0,0.8);
+    text-shadow: 0 2px 16px rgba(0,0,0,0.9);
   }
 
   #main-title em {
@@ -76,6 +66,8 @@
     flex-direction: column;
     align-items: center;
     gap: 28px;
+    width: 100%;
+    max-width: 320px;
   }
 
   #play-btn {
@@ -83,7 +75,7 @@
     height: 80px;
     border-radius: 50%;
     border: 1.5px solid rgba(240, 200, 100, 0.6);
-    background: rgba(10, 5, 0, 0.55);
+    background: rgba(10, 5, 0, 0.65);
     color: #f0c070;
     font-size: 30px;
     cursor: pointer;
@@ -91,17 +83,10 @@
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
-    transition: border-color 0.2s, background 0.2s;
-  }
-
-  #play-btn:active {
-    background: rgba(40, 20, 0, 0.7);
-    border-color: rgba(240, 200, 100, 0.9);
   }
 
   #progress-area {
     width: 100%;
-    max-width: 320px;
     display: flex;
     flex-direction: column;
     gap: 7px;
@@ -109,18 +94,17 @@
 
   #progress-track {
     width: 100%;
-    height: 2px;
+    height: 3px;
     background: rgba(240, 200, 100, 0.2);
-    border-radius: 1px;
+    border-radius: 2px;
     cursor: pointer;
   }
 
   #progress-fill {
     height: 100%;
     background: #f0c070;
-    border-radius: 1px;
+    border-radius: 2px;
     width: 0%;
-    transition: width 0.15s linear;
   }
 
   #time-row {
@@ -129,17 +113,15 @@
     font-size: 12px;
     color: #c8a060;
     font-family: 'Courier New', monospace;
-    letter-spacing: 0.05em;
   }
 
-  /* MOTION SECTION */
   #motion-area {
     width: 100%;
     max-width: 320px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 18px;
   }
 
   #orientation-hint {
@@ -147,21 +129,20 @@
     align-items: center;
     gap: 12px;
     background: rgba(240,200,100,0.09);
-    border: 1px solid rgba(240,200,100,0.25);
+    border: 1px solid rgba(240,200,100,0.28);
     border-radius: 10px;
-    padding: 12px 16px;
+    padding: 14px 16px;
     width: 100%;
   }
 
   #orientation-text {
     font-size: 13px;
     color: #ffe8b0;
-    line-height: 1.5;
+    line-height: 1.55;
   }
 
-  #orientation-text strong { color: #fff; }
+  #orientation-text strong { color: #ffffff; }
 
-  /* Compass rose */
   #compass-wrap {
     display: flex;
     flex-direction: column;
@@ -188,10 +169,9 @@
     left: 50%;
     transform-origin: bottom center;
     transform: translateX(-50%) translateY(-100%) rotate(0deg);
-    transition: transform 0.1s ease;
   }
 
-  #compass-needle-top {
+  #needle-top {
     width: 0;
     height: 0;
     border-left: 4px solid transparent;
@@ -203,7 +183,7 @@
     transform: translateX(-50%);
   }
 
-  #compass-needle-bottom {
+  #needle-bottom {
     width: 2px;
     height: 14px;
     background: #6a5040;
@@ -218,7 +198,6 @@
     height: 5px;
     border-radius: 50%;
     background: rgba(240,200,100,0.5);
-    position: absolute;
   }
 
   #compass-label {
@@ -236,12 +215,12 @@
   }
 
   #motion-btn {
-    padding: 10px 24px;
-    border-radius: 20px;
-    border: 1px solid rgba(240, 200, 100, 0.4);
-    background: rgba(10, 5, 0, 0.5);
+    padding: 13px 30px;
+    border-radius: 24px;
+    border: 1px solid rgba(240, 200, 100, 0.45);
+    background: rgba(10, 5, 0, 0.65);
     color: #f0c070;
-    font-size: 13px;
+    font-size: 14px;
     letter-spacing: 0.06em;
     cursor: pointer;
     font-family: 'Georgia', serif;
@@ -253,14 +232,10 @@
     color: #c8a060;
     text-align: center;
     line-height: 1.5;
-    min-height: 16px;
   }
 </style>
 </head>
 <body>
-
-<div id="bg"></div>
-<div id="vignette"></div>
 
 <div id="ui">
   <div id="title">
@@ -282,18 +257,12 @@
   </div>
 
   <div id="motion-area">
-
     <div id="orientation-hint">
-      <!-- Bird's eye view of phone sweeping left/right -->
-      <svg width="44" height="36" viewBox="0 0 44 36" fill="none" xmlns="http://www.w3.org/2000/svg" flex-shrink="0" style="flex-shrink:0">
-        <!-- Phone body top-down, landscape -->
+      <svg width="44" height="36" viewBox="0 0 44 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
         <rect x="8" y="12" width="28" height="12" rx="2.5" stroke="#f0c070" stroke-width="1.4" fill="none"/>
-        <!-- Camera dot -->
         <circle cx="33" cy="18" r="1.2" fill="#f0c070" opacity="0.6"/>
-        <!-- Left sweep arrow -->
         <path d="M7 18 Q3 10 7 4" stroke="#f0c070" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7"/>
         <path d="M7 4 L5 7 M7 4 L10 5.5" stroke="#f0c070" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
-        <!-- Right sweep arrow -->
         <path d="M37 18 Q41 10 37 4" stroke="#f0c070" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7"/>
         <path d="M37 4 L39 7 M37 4 L34 5.5" stroke="#f0c070" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
       </svg>
@@ -303,8 +272,8 @@
     <div id="compass-wrap">
       <div id="compass">
         <div id="compass-needle">
-          <div id="compass-needle-top"></div>
-          <div id="compass-needle-bottom"></div>
+          <div id="needle-top"></div>
+          <div id="needle-bottom"></div>
         </div>
         <div id="compass-dot"></div>
       </div>
@@ -314,7 +283,6 @@
 
     <button id="motion-btn">Enable motion control</button>
     <div id="motion-hint">Turn to find the music</div>
-
   </div>
 </div>
 
@@ -322,7 +290,6 @@
 
 <script>
   const audio = document.getElementById('audio');
-  const bg = document.getElementById('bg');
   const playBtn = document.getElementById('play-btn');
   const progressFill = document.getElementById('progress-fill');
   const progressTrack = document.getElementById('progress-track');
@@ -333,13 +300,16 @@
   const motionBtn = document.getElementById('motion-btn');
   const motionHint = document.getElementById('motion-hint');
 
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const panner = ctx.createStereoPanner();
-  const src = ctx.createMediaElementSource(audio);
+  const actx = new (window.AudioContext || window.webkitAudioContext)();
+  const panner = actx.createStereoPanner();
+  const src = actx.createMediaElementSource(audio);
   src.connect(panner);
-  panner.connect(ctx.destination);
+  panner.connect(actx.destination);
 
   let alphaOffset = null;
+  let smoothedPan = 0;
+  const SMOOTHING = 0.88;
+  const SWEEP_RANGE = 120;
 
   function fmt(s) {
     const m = Math.floor(s / 60);
@@ -348,28 +318,21 @@
   }
 
   audio.addEventListener('loadedmetadata', () => { tTotal.textContent = fmt(audio.duration); });
-
   audio.addEventListener('timeupdate', () => {
     if (!audio.duration) return;
     progressFill.style.width = ((audio.currentTime / audio.duration) * 100) + '%';
     tCurrent.textContent = fmt(audio.currentTime);
   });
-
-  audio.addEventListener('ended', () => {
-    playBtn.innerHTML = '&#9654;';
-    bg.classList.remove('playing');
-  });
+  audio.addEventListener('ended', () => { playBtn.innerHTML = '&#9654;'; });
 
   playBtn.addEventListener('click', () => {
-    if (ctx.state === 'suspended') ctx.resume();
+    if (actx.state === 'suspended') actx.resume();
     if (audio.paused) {
       audio.play();
       playBtn.innerHTML = '&#9646;&#9646;';
-      bg.classList.add('playing');
     } else {
       audio.pause();
       playBtn.innerHTML = '&#9654;';
-      bg.classList.remove('playing');
     }
   });
 
@@ -380,27 +343,20 @@
 
   function setPan(val) {
     val = Math.max(-1, Math.min(1, val));
-    panner.pan.value = val;
-    const deg = val * 90;
+    smoothedPan = smoothedPan * SMOOTHING + val * (1 - SMOOTHING);
+    panner.pan.value = smoothedPan;
+    const deg = smoothedPan * 90;
     compassNeedle.style.transform = `translateX(-50%) translateY(-100%) rotate(${deg}deg)`;
-    panReadout.textContent = val < -0.1 ? 'Left' : val > 0.1 ? 'Right' : 'Center';
+    panReadout.textContent = smoothedPan < -0.1 ? 'Left' : smoothedPan > 0.1 ? 'Right' : 'Center';
   }
 
-  setPan(0);
-
   function handleOrientation(e) {
-    // alpha = compass heading 0-360 as you sweep phone horizontally
     if (e.alpha === null || e.alpha === undefined) return;
-
-    if (alphaOffset === null) alphaOffset = e.alpha;
-
+    if (alphaOffset === null) { alphaOffset = e.alpha; return; }
     let delta = e.alpha - alphaOffset;
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
-
-    // 90 degrees of sweep = full pan left or right
-    const pan = Math.max(-1, Math.min(1, delta / 90));
-    setPan(pan);
+    setPan(delta / SWEEP_RANGE);
   }
 
   motionBtn.addEventListener('click', async () => {
