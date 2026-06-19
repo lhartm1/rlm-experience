@@ -372,6 +372,8 @@
     // Clamp momentum to -1..1
     panMomentum = Math.max(-1, Math.min(1, panMomentum));
 
+    // Drift back to center when still
+    panMomentum *= 0.95;
 
     setPan(panMomentum);
     audio.volume = 1;
