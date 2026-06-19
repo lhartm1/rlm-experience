@@ -277,7 +277,7 @@
         <path d="M37 18 Q41 10 37 4" stroke="#f0c070" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7"/>
         <path d="M37 4 L39 7 M37 4 L34 5.5" stroke="#f0c070" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
       </svg>
-      <div id="orientation-text">Sweep your phone left or right to pan the sound — works in any orientation</div>
+      <div id="orientation-text">Flick your phone left or right to pan the sound</div>
     </div>
 
     <div id="compass-wrap">
@@ -318,9 +318,8 @@
   panner.connect(actx.destination);
 
   let smoothedPan = 0;
-  const SMOOTHING = 0.88;
-  let accumulatedAngle = 0;
-  let lastTime = null;
+  const SMOOTHING = 0.92;
+  let panMomentum = 0; // accumulated pan position from flicks
 
   function fmt(s) {
     const m = Math.floor(s / 60);
@@ -362,33 +361,22 @@
   }
 
   function handleMotion(e) {
-    if (!e.rotationRate) return;
-    const now = Date.now();
-    if (lastTime === null) { lastTime = now; return; }
-    const dt = (now - lastTime) / 1000; // seconds
-    lastTime = now;
+    if (!e.acceleration) return;
 
-    // alpha = rotation rate around vertical axis (yaw) in degrees/sec
-    // negative to fix left/right direction
-    const yawRate = -(e.rotationRate.alpha || 0);
+    // x axis = left/right acceleration in m/s²
+    const ax = e.acceleration.x || 0;
 
-    // Accumulate rotation, dampen slowly back to center
-    accumulatedAngle += yawRate * dt;
-    accumulatedAngle *= 0.97; // slow drift back to center
-    accumulatedAngle = Math.max(-90, Math.min(90, accumulatedAngle));
+    // Add acceleration to momentum, scaled down
+    panMomentum += ax * 0.015;
 
-    const abs = Math.abs(accumulatedAngle);
-    setPan(accumulatedAngle / 90);
+    // Clamp momentum to -1..1
+    panMomentum = Math.max(-1, Math.min(1, panMomentum));
 
-    if (abs <= 45) {
-      audio.volume = 1;
-    } else if (abs <= 70) {
-      audio.volume = 1 - ((abs - 45) / 25);
-      panReadout.textContent = 'Fading';
-    } else {
-      audio.volume = 0;
-      panReadout.textContent = 'Silent';
-    }
+    // Drift back to center when still
+    panMomentum *= 0.95;
+
+    setPan(panMomentum);
+    audio.volume = 1;
   }
 
   motionBtn.addEventListener('click', async () => {
@@ -409,7 +397,7 @@
 
   function startMotion() {
     motionBtn.style.display = 'none';
-    motionHint.textContent = 'Sweep left or right — the sound will follow';
+    motionHint.textContent = 'Flick left or right — the sound will follow';
     window.addEventListener('devicemotion', handleMotion);
   }
 </script>
