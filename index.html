@@ -24,17 +24,17 @@
     background-position: center 30%;
     filter: brightness(0.38) sepia(0.25);
     z-index: 0;
-    transition: filter 0.6s ease;
+    transition: filter 0.8s ease;
   }
 
   #bg.playing {
-    filter: brightness(0.5) sepia(0.2);
+    filter: brightness(0.52) sepia(0.18);
   }
 
   #vignette {
     position: fixed;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 40%, transparent 20%, rgba(5,2,0,0.75) 80%);
+    background: radial-gradient(ellipse at 50% 40%, transparent 20%, rgba(5,2,0,0.78) 80%);
     z-index: 1;
   }
 
@@ -49,10 +49,7 @@
     padding: 52px 28px 44px;
   }
 
-  /* TITLE */
-  #title {
-    text-align: center;
-  }
+  #title { text-align: center; }
 
   #eyebrow {
     font-size: 10px;
@@ -75,7 +72,6 @@
     color: #c8a060;
   }
 
-  /* CENTER PLAY AREA */
   #center {
     display: flex;
     flex-direction: column;
@@ -104,7 +100,6 @@
     border-color: rgba(200, 160, 80, 0.8);
   }
 
-  /* PROGRESS */
   #progress-area {
     width: 100%;
     max-width: 320px;
@@ -139,7 +134,7 @@
     letter-spacing: 0.05em;
   }
 
-  /* MOTION / PAN SECTION */
+  /* COMPASS SECTION */
   #motion-area {
     width: 100%;
     max-width: 320px;
@@ -149,42 +144,101 @@
     gap: 14px;
   }
 
-  #motion-label {
+  /* Landscape instruction */
+  #orientation-hint {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(200,160,80,0.07);
+    border: 1px solid rgba(200,160,80,0.18);
+    border-radius: 10px;
+    padding: 10px 16px;
+    width: 100%;
+  }
+
+  #phone-icon {
+    flex-shrink: 0;
+  }
+
+  #orientation-text {
+    font-size: 11px;
+    color: #b89060;
+    line-height: 1.5;
+    letter-spacing: 0.03em;
+  }
+
+  /* Compass rose */
+  #compass-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #compass {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 1px solid rgba(200,160,80,0.25);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #compass-needle {
+    width: 2px;
+    height: 28px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    transform: translateX(-50%) translateY(-100%) rotate(0deg);
+    transition: transform 0.1s ease;
+  }
+
+  #compass-needle-top {
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 16px solid #c8a060;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  #compass-needle-bottom {
+    width: 2px;
+    height: 14px;
+    background: #5a4030;
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  #compass-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(200,160,80,0.4);
+    position: absolute;
+  }
+
+  #compass-label {
     font-size: 10px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: #7a6040;
-    text-align: center;
   }
 
-  #pan-bar {
-    width: 100%;
-    height: 1px;
-    background: rgba(200, 160, 80, 0.15);
-    position: relative;
-  }
-
-  #pan-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: #c8a060;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    transition: left 0.1s ease;
-  }
-
-  #pan-ends {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
+  #pan-readout {
     font-size: 10px;
     color: #5a4030;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-top: 5px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.08em;
   }
 
   #motion-btn {
@@ -234,11 +288,37 @@
   </div>
 
   <div id="motion-area">
-    <div id="motion-label">Tilt to pan the sound</div>
-    <div id="pan-bar"><div id="pan-dot"></div></div>
-    <div id="pan-ends"><span>Left</span><span>Right</span></div>
+
+    <div id="orientation-hint">
+      <!-- Phone rotated to landscape SVG icon -->
+      <svg id="phone-icon" width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Phone in landscape orientation -->
+        <rect x="4" y="11" width="28" height="14" rx="3" stroke="#c8a060" stroke-width="1.5" fill="none"/>
+        <circle cx="7.5" cy="18" r="1.5" fill="#c8a060" opacity="0.5"/>
+        <!-- rotation arrows -->
+        <path d="M15 6 Q18 3 21 6" stroke="#c8a060" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M21 6 L20 4M21 6 L23 5.2" stroke="#c8a060" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M21 30 Q18 33 15 30" stroke="#c8a060" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M15 30 L16 32M15 30 L13 30.8" stroke="#c8a060" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <div id="orientation-text">Hold phone <strong>horizontally</strong> and turn your body to pan the sound</div>
+    </div>
+
+    <div id="compass-wrap">
+      <div id="compass">
+        <div id="compass-needle">
+          <div id="compass-needle-top"></div>
+          <div id="compass-needle-bottom"></div>
+        </div>
+        <div id="compass-dot"></div>
+      </div>
+      <div id="compass-label">Compass</div>
+      <div id="pan-readout">Center</div>
+    </div>
+
     <button id="motion-btn">Enable motion control</button>
-    <div id="motion-hint">Tilt your phone left or right to shift the stereo field</div>
+    <div id="motion-hint">Turn to find the music</div>
+
   </div>
 </div>
 
@@ -252,16 +332,21 @@
   const progressTrack = document.getElementById('progress-track');
   const tCurrent = document.getElementById('t-current');
   const tTotal = document.getElementById('t-total');
-  const panDot = document.getElementById('pan-dot');
+  const compassNeedle = document.getElementById('compass-needle');
+  const panReadout = document.getElementById('pan-readout');
   const motionBtn = document.getElementById('motion-btn');
   const motionHint = document.getElementById('motion-hint');
 
-  // Web Audio for panning
+  // Web Audio
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const panner = ctx.createStereoPanner();
-  const source = ctx.createMediaElementSource(audio);
-  source.connect(panner);
+  const src = ctx.createMediaElementSource(audio);
+  src.connect(panner);
   panner.connect(ctx.destination);
+
+  let motionEnabled = false;
+  let useAlpha = false;
+  let alphaOffset = null; // calibration: first reading = center
 
   function fmt(s) {
     const m = Math.floor(s / 60);
@@ -304,21 +389,43 @@
     audio.currentTime = pct * audio.duration;
   });
 
-  // Pan
   function setPan(val) {
     val = Math.max(-1, Math.min(1, val));
     panner.pan.value = val;
-    const pct = ((val + 1) / 2) * 100;
-    panDot.style.left = pct + '%';
+    // rotate needle: -90deg = full left, 0 = center, +90deg = full right
+    const deg = val * 90;
+    compassNeedle.style.transform = `translateX(-50%) translateY(-100%) rotate(${deg}deg)`;
+    if (val < -0.1) panReadout.textContent = 'Left';
+    else if (val > 0.1) panReadout.textContent = 'Right';
+    else panReadout.textContent = 'Center';
   }
 
   setPan(0);
 
-  // Motion
+  function handleOrientation(e) {
+    if (!motionEnabled) return;
+
+    if (useAlpha && e.alpha !== null) {
+      // Calibrate on first reading
+      if (alphaOffset === null) alphaOffset = e.alpha;
+      let delta = e.alpha - alphaOffset;
+      // Wrap to -180..180
+      if (delta > 180) delta -= 360;
+      if (delta < -180) delta += 360;
+      // Map ±90 degrees of turn to ±1 pan
+      const pan = Math.max(-1, Math.min(1, delta / 90));
+      setPan(pan);
+    } else {
+      // Fallback: gamma (tilt left/right) for landscape
+      const gamma = e.gamma || 0;
+      setPan(gamma / 45);
+    }
+  }
+
   motionBtn.addEventListener('click', async () => {
-    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
-        const perm = await DeviceMotionEvent.requestPermission();
+        const perm = await DeviceOrientationEvent.requestPermission();
         if (perm === 'granted') startMotion();
         else motionHint.textContent = 'Motion permission denied.';
       } catch(e) {
@@ -332,12 +439,23 @@
   });
 
   function startMotion() {
+    motionEnabled = true;
     motionBtn.style.display = 'none';
-    motionHint.textContent = 'Tilt left or right to pan the audio';
-    window.addEventListener('deviceorientation', (e) => {
-      const gamma = e.gamma || 0;
-      setPan(gamma / 45);
-    });
+
+    // Test if alpha is available and meaningful
+    const testHandler = (e) => {
+      if (e.alpha !== null && e.alpha !== undefined) {
+        useAlpha = true;
+        motionHint.textContent = 'Turn your body — the sound will follow';
+      } else {
+        useAlpha = false;
+        motionHint.textContent = 'Tilt left or right to pan';
+      }
+      window.removeEventListener('deviceorientation', testHandler);
+      window.addEventListener('deviceorientation', handleOrientation);
+    };
+
+    window.addEventListener('deviceorientation', testHandler);
   }
 </script>
 </body>
