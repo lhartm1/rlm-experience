@@ -7,26 +7,35 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  html { background: #0d0800; }
+
   body {
     font-family: 'Georgia', serif;
     color: #f0e8d0;
-    background-color: #0d0800;
+    background: transparent;
+    min-height: 100vh;
+  }
+
+  /* Fixed background layer — pointer-events off so it never blocks scroll or taps */
+  #bg {
+    position: fixed;
+    inset: 0;
     background-image: url('708616044_1631812425451533_4297030253631931157_n.jpg');
     background-size: cover;
     background-position: center 30%;
-    background-attachment: fixed;
-  }
-
-  /* Dark overlay as a pseudo-element on body */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: rgba(5, 2, 0, 0.62);
     z-index: 0;
     pointer-events: none;
   }
 
+  /* Dark overlay */
+  #bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 2, 0, 0.62);
+  }
+
+  /* Scrollable content sits above fixed bg */
   #ui {
     position: relative;
     z-index: 1;
@@ -237,6 +246,8 @@
 </head>
 <body>
 
+<div id="bg"></div>
+
 <div id="ui">
   <div id="title">
     <div id="eyebrow">An immersive listening experience</div>
@@ -356,7 +367,23 @@
     let delta = e.alpha - alphaOffset;
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
-    setPan(delta / SWEEP_RANGE);
+
+    const abs = Math.abs(delta);
+
+    // Pan: clamp to 90 degrees each side
+    setPan(Math.max(-1, Math.min(1, delta / 90)));
+
+    // Volume: full from 0-90°, fades to silence from 90-135°, silent beyond
+    if (abs <= 90) {
+      audio.volume = 1;
+      panReadout.textContent = delta < -0.1 ? 'Left' : delta > 0.1 ? 'Right' : 'Center';
+    } else if (abs <= 135) {
+      audio.volume = 1 - ((abs - 90) / 45);
+      panReadout.textContent = 'Fading';
+    } else {
+      audio.volume = 0;
+      panReadout.textContent = 'Silent';
+    }
   }
 
   motionBtn.addEventListener('click', async () => {
