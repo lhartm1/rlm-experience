@@ -293,7 +293,7 @@
     </div>
 
     <button id="motion-btn">Enable motion control</button>
-    <div id="motion-hint">Tilt left or right to find the music</div>
+    <div id="motion-hint">Move the phone left or right to pan the music</div>
   </div>
 </div>
 
@@ -360,23 +360,70 @@
     panReadout.textContent = smoothedPan < -0.1 ? 'Left' : smoothedPan > 0.1 ? 'Right' : 'Center';
   }
 
+  // --- Motion panning ---
+  // In landscape orientation, physical left/right movement is usually on the
+  // device Y axis, not X. If your phone pans backwards, change MOTION_SIGN to -1.
+  const MOTION_AXIS = 'y';
+  const MOTION_SIGN = 1;
+  const MOTION_DEADZONE = 0.45;
+  const MOTION_SENSITIVITY = 0.025;
+  const RETURN_TO_CENTER = 0.965;
+
+  // Used only when the browser provides accelerationIncludingGravity but not
+  // clean acceleration. This removes the slow gravity/tilt component so quick
+  // left/right motion reads more like a flick than a tilt.
+  const gravity = { x: 0, y: 0, z: 0 };
+  const GRAVITY_SMOOTHING = 0.85;
+
+  function getLinearAcceleration(e) {
+    // Best case: browser gives gravity-removed acceleration.
+    if (e.acceleration && e.acceleration.x !== null) {
+      return {
+        x: e.acceleration.x || 0,
+        y: e.acceleration.y || 0,
+        z: e.acceleration.z || 0,
+        source: 'acceleration'
+      };
+    }
+
+    // Fallback: estimate and subtract gravity from accelerationIncludingGravity.
+    const a = e.accelerationIncludingGravity;
+    if (!a || a.x === null) return null;
+
+    gravity.x = gravity.x * GRAVITY_SMOOTHING + (a.x || 0) * (1 - GRAVITY_SMOOTHING);
+    gravity.y = gravity.y * GRAVITY_SMOOTHING + (a.y || 0) * (1 - GRAVITY_SMOOTHING);
+    gravity.z = gravity.z * GRAVITY_SMOOTHING + (a.z || 0) * (1 - GRAVITY_SMOOTHING);
+
+    return {
+      x: (a.x || 0) - gravity.x,
+      y: (a.y || 0) - gravity.y,
+      z: (a.z || 0) - gravity.z,
+      source: 'filtered accelerationIncludingGravity'
+    };
+  }
+
   function handleMotion(e) {
-    if (!e.acceleration) return;
+    const linear = getLinearAcceleration(e);
+    if (!linear) return;
 
-    // x axis = left/right acceleration in m/s²
-    const ax = e.acceleration.x || 0;
+    // For this project: landscape phone, physically moved left/right.
+    // Try MOTION_AXIS = 'x' above if your device/browser maps it differently.
+    const move = (linear[MOTION_AXIS] || 0) * MOTION_SIGN;
 
-    // Add acceleration to momentum, scaled down
-    panMomentum += ax * 0.015;
+    // Ignore tiny hand tremors. Stronger flicks push the pan farther.
+    if (Math.abs(move) > MOTION_DEADZONE) {
+      panMomentum += move * MOTION_SENSITIVITY;
+    }
 
-    // Clamp momentum to -1..1
+    // Slowly return toward center when the phone stops moving.
+    panMomentum *= RETURN_TO_CENTER;
     panMomentum = Math.max(-1, Math.min(1, panMomentum));
-
-    // Drift back to center when still
-    panMomentum *= 0.95;
 
     setPan(panMomentum);
     audio.volume = 1;
+
+    motionHint.textContent =
+      `axis: ${MOTION_AXIS} | motion: ${move.toFixed(2)} | pan: ${panMomentum.toFixed(2)}`;
   }
 
   motionBtn.addEventListener('click', async () => {
@@ -397,7 +444,7 @@
 
   function startMotion() {
     motionBtn.style.display = 'none';
-    motionHint.textContent = 'Flick left or right — the sound will follow';
+    motionHint.textContent = 'Move/flick left or right in landscape — the sound will follow';
     window.addEventListener('devicemotion', handleMotion);
   }
 </script>
