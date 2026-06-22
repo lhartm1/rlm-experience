@@ -329,10 +329,10 @@
 
   const MOTION_AXIS = 'y';
   const MOTION_SIGN = 1;
-  const DEADZONE = 0.15;
-  const VELOCITY_DECAY = 0.75;
-  const VELOCITY_GAIN = 0.12;
-  const PAN_GAIN = 0.10;
+  const DEADZONE = 0.15;        // ignore tiny jitter
+  const VELOCITY_DECAY = 0.80;  // how fast velocity bleeds off (lower = snappier stop)
+  const VELOCITY_GAIN = 0.08;   // how much acceleration feeds into velocity
+  const PAN_GAIN = 0.08;        // how much velocity moves the pan position
 
   const BASELINE_SMOOTHING = 0.985;
   let baseline = null;
@@ -362,47 +362,38 @@
   function handleMotion(e) {
     const reading = getAxisValue(e);
     if (!reading) {
-      motionHint.textContent = 'No usable axis values.';
+      motionHint.textContent = 'Motion event received, but no usable axis values. Try another browser/device.';
       return;
     }
 
     lastSensorTime = performance.now();
+
+    const raw = reading.raw || 0;
     const motion = reading.motion || 0;
-    rawDisplay = rawDisplay * 0.8 + Math.abs(motion) * 0.2;
 
-    const absMotion = Math.abs(motion);
-    const sign = motion >= 0 ? 1 : -1;
+    rawDisplay = rawDisplay * 0.8 + raw * 0.2;
+    motionDisplay = motionDisplay * 0.8 + motion * 0.2;
 
-    if (!inGesture) {
-      // Wait for a clear gesture start above threshold
-      if (absMotion > GESTURE_THRESHOLD) {
-        inGesture = true;
-        peakValue = absMotion;
-        peakSign = sign;
-      }
-    } else {
-      // Track the peak while the gesture is ongoing
-      if (absMotion > peakValue) {
-        peakValue = absMotion;
-        peakSign = sign;
-      }
-
-      // Gesture ends when signal drops below threshold
-      if (absMotion < GESTURE_THRESHOLD * 0.4) {
-        // Commit the peak to pan position
-        const delta = peakSign * peakValue * PAN_GAIN;
-        panPosition = Math.max(-1, Math.min(1, panPosition + delta));
-        setPan(panPosition);
-
-        // Reset gesture state
-        inGesture = false;
-        peakValue = 0;
-        peakSign = 0;
-      }
+    // C: Velocity integration — acceleration feeds velocity, velocity feeds position
+    // The equal-and-opposite deceleration on stop cancels out in the integral
+    if (Math.abs(motion) > DEADZONE) {
+      velocity += motion * VELOCITY_GAIN;
     }
 
+    // Velocity decays naturally — no hard stop, smooth bleed-off
+    velocity *= VELOCITY_DECAY;
+
+    // Clamp velocity so it can't go crazy
+    velocity = Math.max(-0.15, Math.min(0.15, velocity));
+
+    // Integrate velocity into position
+    panPosition += velocity * PAN_GAIN;
+    panPosition = Math.max(-1, Math.min(1, panPosition));
+
+    setPan(panPosition);
+
     motionHint.textContent =
-      `pan: ${panPosition.toFixed(2)} | peak: ${peakValue.toFixed(2)} | ${inGesture ? 'gesturing...' : 'ready'}`;
+      `pan: ${panPosition.toFixed(2)} | vel: ${velocity.toFixed(3)} | motion: ${motionDisplay.toFixed(2)}`;
 
     audio.volume = 1;
   }
