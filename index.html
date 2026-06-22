@@ -223,20 +223,6 @@
     letter-spacing: 0.08em;
   }
 
-  #center-pan-btn {
-    margin-top: 4px;
-    padding: 8px 18px;
-    border-radius: 18px;
-    border: 1px solid rgba(240, 200, 100, 0.42);
-    background: rgba(10, 5, 0, 0.55);
-    color: #f0c070;
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    cursor: pointer;
-    font-family: 'Georgia', serif;
-    -webkit-tap-highlight-color: transparent;
-  }
-
   #motion-btn {
     padding: 13px 30px;
     border-radius: 24px;
@@ -304,7 +290,6 @@
       </div>
       <div id="compass-label">Direction</div>
       <div id="pan-readout">Center</div>
-      <button id="center-pan-btn" type="button">Center pan</button>
     </div>
 
     <button id="motion-btn">Enable motion control</button>
@@ -323,7 +308,6 @@
   const tTotal = document.getElementById('t-total');
   const compassNeedle = document.getElementById('compass-needle');
   const panReadout = document.getElementById('pan-readout');
-  const centerPanBtn = document.getElementById('center-pan-btn');
   const motionBtn = document.getElementById('motion-btn');
   const motionHint = document.getElementById('motion-hint');
 
@@ -365,35 +349,6 @@
   let rawDisplay = 0;
   let motionDisplay = 0;
   let lastSensorTime = 0;
-
-  function setPan(val, immediate = false) {
-    val = Math.max(-1, Math.min(1, val));
-
-    if (immediate) {
-      smoothedPan = val;
-    } else {
-      smoothedPan = smoothedPan * SMOOTHING + val * (1 - SMOOTHING);
-    }
-
-    panner.pan.value = smoothedPan;
-
-    const deg = smoothedPan * 90;
-    compassNeedle.style.transform = `translateX(-50%) translateY(-100%) rotate(${deg}deg)`;
-
-    if (smoothedPan < -0.1) {
-      panReadout.textContent = `Left ${Math.round(Math.abs(smoothedPan) * 100)}%`;
-    } else if (smoothedPan > 0.1) {
-      panReadout.textContent = `Right ${Math.round(smoothedPan * 100)}%`;
-    } else {
-      panReadout.textContent = 'Center';
-    }
-  }
-
-  function centerPan() {
-    panPosition = 0;
-    setPan(0, true);
-    motionHint.textContent = 'Centered. Move left or right to slide the pan again.';
-  }
 
   function getAxisValue(e) {
     // Best case: real acceleration without gravity. This reads physical motion.
@@ -442,8 +397,11 @@
     audio.volume = 1;
   }
 
-  centerPanBtn.addEventListener('click', centerPan);
-  compassNeedle.parentElement.addEventListener('click', centerPan);
+  compassNeedle.parentElement.addEventListener('click', () => {
+    panPosition = 0;
+    setPan(panPosition);
+    motionHint.textContent = 'Centered. Move left or right to slide the pan again.';
+  });
 
   motionBtn.addEventListener('click', async () => {
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
