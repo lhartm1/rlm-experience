@@ -277,7 +277,7 @@
         <path d="M37 18 Q41 10 37 4" stroke="#f0c070" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7"/>
         <path d="M37 4 L39 7 M37 4 L34 5.5" stroke="#f0c070" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
       </svg>
-      <div id="orientation-text">Flick your phone left or right to pan the sound</div>
+      <div id="orientation-text">Move your phone left or right to slide the pan position</div>
     </div>
 
     <div id="compass-wrap">
@@ -293,7 +293,7 @@
     </div>
 
     <button id="motion-btn">Enable motion control</button>
-    <div id="motion-hint">Move the phone left or right to pan the music</div>
+    <div id="motion-hint">Move left or right to slide the music through the stereo field</div>
   </div>
 </div>
 
@@ -318,8 +318,26 @@
   panner.connect(actx.destination);
 
   let smoothedPan = 0;
-  const SMOOTHING = 0.92;
-  let panMomentum = 0; // accumulated pan position from flicks
+  const SMOOTHING = 0.82;
+
+  // Continuous pan position. This is intentionally persistent:
+  // motion changes it, but it does not drift back to center.
+  let panPosition = 0;
+
+  // Landscape left/right movement is often the y axis.
+  // If it feels backward, change MOTION_SIGN from 1 to -1.
+  const MOTION_AXIS = 'y';
+  const MOTION_SIGN = 1;
+
+  // Tuning values. Lower DEADZONE = more sensitive.
+  // Higher PAN_GAIN = moves across the stereo field faster.
+  const DEADZONE = 0.65;
+  const PAN_GAIN = 0.018;
+  const MAX_DELTA_PER_EVENT = 0.055;
+
+  // Rolling baseline removes the steady gravity/orientation component,
+  // leaving mostly the left/right motion impulse.
+  let motionBaseline = 0;
 
   function fmt(s) {
     const m = Math.floor(s / 60);
@@ -360,71 +378,41 @@
     panReadout.textContent = smoothedPan < -0.1 ? 'Left' : smoothedPan > 0.1 ? 'Right' : 'Center';
   }
 
-  // --- Motion panning ---
-  // In landscape orientation, physical left/right movement is usually on the
-  // device Y axis, not X. If your phone pans backwards, change MOTION_SIGN to -1.
-  const MOTION_AXIS = 'y';
-  const MOTION_SIGN = 1;
-  const MOTION_DEADZONE = 0.45;
-  const MOTION_SENSITIVITY = 0.025;
-  const RETURN_TO_CENTER = 0.965;
-
-  // Used only when the browser provides accelerationIncludingGravity but not
-  // clean acceleration. This removes the slow gravity/tilt component so quick
-  // left/right motion reads more like a flick than a tilt.
-  const gravity = { x: 0, y: 0, z: 0 };
-  const GRAVITY_SMOOTHING = 0.85;
-
-  function getLinearAcceleration(e) {
-    // Best case: browser gives gravity-removed acceleration.
-    if (e.acceleration && e.acceleration.x !== null) {
-      return {
-        x: e.acceleration.x || 0,
-        y: e.acceleration.y || 0,
-        z: e.acceleration.z || 0,
-        source: 'acceleration'
-      };
-    }
-
-    // Fallback: estimate and subtract gravity from accelerationIncludingGravity.
-    const a = e.accelerationIncludingGravity;
-    if (!a || a.x === null) return null;
-
-    gravity.x = gravity.x * GRAVITY_SMOOTHING + (a.x || 0) * (1 - GRAVITY_SMOOTHING);
-    gravity.y = gravity.y * GRAVITY_SMOOTHING + (a.y || 0) * (1 - GRAVITY_SMOOTHING);
-    gravity.z = gravity.z * GRAVITY_SMOOTHING + (a.z || 0) * (1 - GRAVITY_SMOOTHING);
-
-    return {
-      x: (a.x || 0) - gravity.x,
-      y: (a.y || 0) - gravity.y,
-      z: (a.z || 0) - gravity.z,
-      source: 'filtered accelerationIncludingGravity'
-    };
-  }
-
   function handleMotion(e) {
-    const linear = getLinearAcceleration(e);
-    if (!linear) return;
+    const a = e.accelerationIncludingGravity;
+    if (!a) return;
 
-    // For this project: landscape phone, physically moved left/right.
-    // Try MOTION_AXIS = 'x' above if your device/browser maps it differently.
-    const move = (linear[MOTION_AXIS] || 0) * MOTION_SIGN;
+    const rawAxis = a[MOTION_AXIS];
+    if (rawAxis === null || rawAxis === undefined) return;
 
-    // Ignore tiny hand tremors. Stronger flicks push the pan farther.
-    if (Math.abs(move) > MOTION_DEADZONE) {
-      panMomentum += move * MOTION_SENSITIVITY;
+    // Remove slow gravity/orientation offset so holding the phone still
+    // does not keep pushing the pan.
+    motionBaseline = motionBaseline * 0.96 + rawAxis * 0.04;
+    const motion = (rawAxis - motionBaseline) * MOTION_SIGN;
+
+    // Above the deadzone, motion nudges the pan position left/right.
+    // Below it, nothing happens: the pan stays where it already is.
+    if (Math.abs(motion) > DEADZONE) {
+      let delta = motion * PAN_GAIN;
+      delta = Math.max(-MAX_DELTA_PER_EVENT, Math.min(MAX_DELTA_PER_EVENT, delta));
+      panPosition += delta;
+      panPosition = Math.max(-1, Math.min(1, panPosition));
     }
 
-    // Slowly return toward center when the phone stops moving.
-    panMomentum *= RETURN_TO_CENTER;
-    panMomentum = Math.max(-1, Math.min(1, panMomentum));
-
-    setPan(panMomentum);
-    audio.volume = 1;
+    setPan(panPosition);
 
     motionHint.textContent =
-      `axis: ${MOTION_AXIS} | motion: ${move.toFixed(2)} | pan: ${panMomentum.toFixed(2)}`;
+      `axis: ${MOTION_AXIS} | motion: ${motion.toFixed(2)} | pan: ${panPosition.toFixed(2)}`;
+
+    audio.volume = 1;
   }
+
+
+  compassNeedle.parentElement.addEventListener('click', () => {
+    panPosition = 0;
+    setPan(panPosition);
+    motionHint.textContent = 'Centered. Move left or right to slide the pan again.';
+  });
 
   motionBtn.addEventListener('click', async () => {
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
@@ -444,7 +432,7 @@
 
   function startMotion() {
     motionBtn.style.display = 'none';
-    motionHint.textContent = 'Move/flick left or right in landscape — the sound will follow';
+    motionHint.textContent = 'Move left or right — the pan will slide and stay where you leave it';
     window.addEventListener('devicemotion', handleMotion);
   }
 </script>
