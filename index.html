@@ -397,6 +397,45 @@
     audio.volume = 1;
   }
 
+  audio.addEventListener('loadedmetadata', () => { tTotal.textContent = fmt(audio.duration); });
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
+    progressFill.style.width = ((audio.currentTime / audio.duration) * 100) + '%';
+    tCurrent.textContent = fmt(audio.currentTime);
+  });
+  audio.addEventListener('ended', () => { playBtn.innerHTML = '&#9654;'; });
+
+  playBtn.addEventListener('click', () => {
+    if (actx.state === 'suspended') actx.resume();
+    if (audio.paused) {
+      audio.play();
+      playBtn.innerHTML = '&#9646;&#9646;';
+    } else {
+      audio.pause();
+      playBtn.innerHTML = '&#9654;';
+    }
+  });
+
+  progressTrack.addEventListener('click', (e) => {
+    const rect = progressTrack.getBoundingClientRect();
+    audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+  });
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function setPan(val) {
+    val = Math.max(-1, Math.min(1, val));
+    smoothedPan = smoothedPan * PAN_SMOOTHING + val * (1 - PAN_SMOOTHING);
+    panner.pan.value = smoothedPan;
+    const deg = smoothedPan * 90;
+    compassNeedle.style.transform = `translateX(-50%) translateY(-100%) rotate(${deg}deg)`;
+    panReadout.textContent = smoothedPan < -0.1 ? 'Left' : smoothedPan > 0.1 ? 'Right' : 'Center';
+  }
+
   compassNeedle.parentElement.addEventListener('click', () => {
     panPosition = 0;
     setPan(panPosition);
