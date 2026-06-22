@@ -318,7 +318,7 @@
   panner.connect(actx.destination);
 
   let smoothedPan = 0;
-  const SMOOTHING = 0.82;
+  const SMOOTHING = 0.88;
 
   // Continuous pan position. This is intentionally persistent:
   // motion changes it, but it does not drift back to center.
@@ -329,15 +329,29 @@
   const MOTION_AXIS = 'y';
   const MOTION_SIGN = 1;
 
-  // Tuning values. Lower DEADZONE = more sensitive.
-  // Higher PAN_GAIN = moves across the stereo field faster.
-  const DEADZONE = 0.65;
-  const PAN_GAIN = 0.018;
-  const MAX_DELTA_PER_EVENT = 0.055;
+  // TUNING VALUES
+  // Lower DEADZONE = smaller gestures are noticed.
+  // Higher PAN_SPEED = smaller physical gestures move the pan farther.
+  // Higher MOTION_SMOOTHING = less twitchy, but a little slower to respond.
+  const DEADZONE = 0.38;
+  const PAN_SPEED = 0.72;       // pan units per second at strong motion
+  const MOTION_RANGE = 2.6;     // expected useful motion range after filtering
+  const MAX_STEP = 0.025;       // max pan change per sensor event
+  const MOTION_SMOOTHING = 0.84;
+  const BASELINE_SMOOTHING = 0.985;
+
+  // This suppresses the little opposite-direction bump that happens when
+  // your hand stops moving and the phone decelerates.
+  const REVERSAL_SUPPRESS_MS = 220;
+  const REVERSAL_THRESHOLD = 0.95;
 
   // Rolling baseline removes the steady gravity/orientation component,
   // leaving mostly the left/right motion impulse.
   let motionBaseline = 0;
+  let filteredMotion = 0;
+  let lastMotionTime = 0;
+  let lastIntentSign = 0;
+  let lastIntentTime = 0;
 
   function fmt(s) {
     const m = Math.floor(s / 60);
@@ -385,24 +399,48 @@
     const rawAxis = a[MOTION_AXIS];
     if (rawAxis === null || rawAxis === undefined) return;
 
-    // Remove slow gravity/orientation offset so holding the phone still
-    // does not keep pushing the pan.
-    motionBaseline = motionBaseline * 0.96 + rawAxis * 0.04;
-    const motion = (rawAxis - motionBaseline) * MOTION_SIGN;
+    const now = performance.now();
+    const dt = lastMotionTime ? Math.min((now - lastMotionTime) / 1000, 0.05) : 0.016;
+    lastMotionTime = now;
 
-    // Above the deadzone, motion nudges the pan position left/right.
-    // Below it, nothing happens: the pan stays where it already is.
-    if (Math.abs(motion) > DEADZONE) {
-      let delta = motion * PAN_GAIN;
-      delta = Math.max(-MAX_DELTA_PER_EVENT, Math.min(MAX_DELTA_PER_EVENT, delta));
-      panPosition += delta;
-      panPosition = Math.max(-1, Math.min(1, panPosition));
+    // Remove slow gravity/orientation offset so holding the phone still
+    // does not keep pushing the pan. This baseline moves very slowly.
+    motionBaseline = motionBaseline * BASELINE_SMOOTHING + rawAxis * (1 - BASELINE_SMOOTHING);
+    const unfilteredMotion = (rawAxis - motionBaseline) * MOTION_SIGN;
+
+    // Smooth the motion signal before deciding whether it is intentional.
+    filteredMotion = filteredMotion * MOTION_SMOOTHING + unfilteredMotion * (1 - MOTION_SMOOTHING);
+
+    const absMotion = Math.abs(filteredMotion);
+    const sign = Math.sign(filteredMotion);
+
+    if (absMotion > DEADZONE) {
+      const justReversed =
+        sign !== 0 &&
+        lastIntentSign !== 0 &&
+        sign !== lastIntentSign &&
+        (now - lastIntentTime) < REVERSAL_SUPPRESS_MS &&
+        absMotion < REVERSAL_THRESHOLD;
+
+      if (!justReversed) {
+        // Map the filtered motion into a smaller, more playable gesture field.
+        // A smaller MOTION_RANGE makes smaller gestures move the pan more.
+        const normalized = Math.min(1, (absMotion - DEADZONE) / (MOTION_RANGE - DEADZONE));
+        let delta = sign * normalized * PAN_SPEED * dt;
+        delta = Math.max(-MAX_STEP, Math.min(MAX_STEP, delta));
+
+        panPosition += delta;
+        panPosition = Math.max(-1, Math.min(1, panPosition));
+
+        lastIntentSign = sign;
+        lastIntentTime = now;
+      }
     }
 
     setPan(panPosition);
 
     motionHint.textContent =
-      `axis: ${MOTION_AXIS} | motion: ${motion.toFixed(2)} | pan: ${panPosition.toFixed(2)}`;
+      `axis: ${MOTION_AXIS} | raw: ${unfilteredMotion.toFixed(2)} | smooth: ${filteredMotion.toFixed(2)} | pan: ${panPosition.toFixed(2)}`;
 
     audio.volume = 1;
   }
