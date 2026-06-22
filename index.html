@@ -335,12 +335,12 @@
 
   // TUNING VALUES
   const CALIBRATION_MS = 650;    // neutral baseline time after enabling motion
-  const DEADZONE = 0.22;         // lower = more sensitive to small gestures
+  const DEADZONE = 0.16;         // lower = more sensitive to small gestures
   const GESTURE_WINDOW_MS = 260; // shorter = responds to smaller/shorter gestures
   const COOLDOWN_MS = 80;        // prevents double-triggering from one motion
-  const MIN_GESTURE_STEP = 0.075;// smallest pan nudge per recognized gesture
-  const MAX_GESTURE_STEP = 0.30; // largest pan nudge per recognized gesture
-  const GESTURE_RANGE = 1.35;    // lower = smaller gestures move pan more
+  const MIN_GESTURE_STEP = 0.055;// smallest pan nudge per recognized gesture
+  const MAX_GESTURE_STEP = 0.22; // largest pan nudge per recognized gesture
+  const GESTURE_RANGE = 0.95;    // lower = smaller gestures move pan more
   const BASELINE_SMOOTHING = 0.998;
   const DISPLAY_SMOOTHING = 0.78;
   const QUIET_RESET = 0.12;      // helps arm the next tiny gesture after stillness
@@ -397,13 +397,17 @@
   }
 
   function getMotionAxis(e) {
-    // Prefer gravity-removed acceleration when the browser provides it.
-    // Fall back to accelerationIncludingGravity, but subtract a calibrated baseline.
+    // Prefer gravity-removed acceleration when available. This is the cleanest
+    // actual movement reading because it does not include the phone's resting angle.
     const plain = e.acceleration;
     if (plain && plain[MOTION_AXIS] !== null && plain[MOTION_AXIS] !== undefined) {
+      calibrated = true;
       return plain[MOTION_AXIS] * MOTION_SIGN;
     }
 
+    // Fallback for browsers that only give accelerationIncludingGravity.
+    // First valid sample becomes neutral immediately instead of requiring a
+    // timed calibration phase that can get stuck.
     const withGravity = e.accelerationIncludingGravity;
     if (!withGravity || withGravity[MOTION_AXIS] === null || withGravity[MOTION_AXIS] === undefined) {
       return null;
@@ -413,16 +417,8 @@
 
     if (motionBaseline === null) {
       motionBaseline = raw;
-      calibrationStart = performance.now();
-      return 0;
-    }
-
-    if (!calibrated) {
-      motionBaseline = motionBaseline * 0.92 + raw * 0.08;
-      if (performance.now() - calibrationStart >= CALIBRATION_MS) {
-        calibrated = true;
-        motionHint.textContent = 'Ready. Move left or right to slide the pan.';
-      }
+      calibrated = true;
+      motionHint.textContent = 'Ready. Move left or right to slide the pan.';
       return 0;
     }
 
@@ -438,12 +434,6 @@
 
     const now = performance.now();
     displayMotion = displayMotion * DISPLAY_SMOOTHING + motion * (1 - DISPLAY_SMOOTHING);
-
-    if (!calibrated) {
-      setPan(panPosition);
-      motionHint.textContent = 'Calibrating neutral position... hold the phone still';
-      return;
-    }
 
     const absMotion = Math.abs(motion);
     const sign = Math.sign(motion);
@@ -516,7 +506,7 @@
 
   function startMotion() {
     motionBtn.style.display = 'none';
-    motionHint.textContent = 'Calibrating neutral position... hold the phone still';
+    motionHint.textContent = 'Move left or right to slide the pan. Waiting for motion sensor...';
     motionBaseline = null;
     calibrated = false;
     gestureActive = false;
