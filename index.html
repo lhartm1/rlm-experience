@@ -292,6 +292,8 @@
       <div id="pan-readout">Center</div>
     </div>
 
+    <button id="reset-btn" style="padding:10px 24px; border-radius:20px; border:1px solid rgba(240,200,100,0.35); background:rgba(10,5,0,0.55); color:#f0c070; font-size:13px; letter-spacing:0.06em; cursor:pointer; font-family:'Georgia',serif;">Reset to Center</button>
+
     <button id="motion-btn">Enable motion control</button>
     <div id="motion-hint">Move left or right to slide the music through the stereo field</div>
   </div>
@@ -318,33 +320,21 @@
   panner.connect(actx.destination);
 
   let smoothedPan = 0;
-  const SMOOTHING = 0.88;
+  const PAN_SMOOTHING = 0.90;
 
-  // Continuous pan position. This is intentionally persistent:
-  // motion changes it, but it does not drift back to center.
+  // Velocity-based pan — integrates acceleration into velocity, velocity into position
+  // Equal-and-opposite deceleration cancels itself out in the integral
+  let velocity = 0;
   let panPosition = 0;
 
-  // Landscape left/right movement is often the y axis.
-  // Gesture-based motion mapping.
-  // This is better than continuously integrating the accelerometer because
-  // Motion-to-pan tuning
-  // This version has NO calibration gate. It never waits at "starting."
-  // It shows sensor values immediately so we can see what the phone is actually reporting.
-  const MOTION_AXIS = 'y';       // landscape left/right is usually y; try 'x' if y is flat
-  const MOTION_SIGN = 1;         // change to -1 if left/right are reversed
+  const MOTION_AXIS = 'y';
+  const MOTION_SIGN = 1;
+  const DEADZONE = 0.15;        // ignore tiny jitter
+  const VELOCITY_DECAY = 0.80;  // how fast velocity bleeds off (lower = snappier stop)
+  const VELOCITY_GAIN = 0.08;   // how much acceleration feeds into velocity
+  const PAN_GAIN = 0.08;        // how much velocity moves the pan position
 
-  // smaller = responds to smaller gestures; larger = ignores tiny jitter
-  const DEADZONE = 0.10;
-
-  // higher = smaller movements move the pan more
-  const PAN_GAIN = 0.035;
-
-  // smoothing for the visual/audio pan; higher = smoother/slower
-  const PAN_SMOOTHING = 0.84;
-
-  // high-pass filter amount used only when browser lacks gravity-free acceleration
   const BASELINE_SMOOTHING = 0.985;
-
   let baseline = null;
   let rawDisplay = 0;
   let motionDisplay = 0;
@@ -384,15 +374,26 @@
     rawDisplay = rawDisplay * 0.8 + raw * 0.2;
     motionDisplay = motionDisplay * 0.8 + motion * 0.2;
 
+    // C: Velocity integration — acceleration feeds velocity, velocity feeds position
+    // The equal-and-opposite deceleration on stop cancels out in the integral
     if (Math.abs(motion) > DEADZONE) {
-      panPosition += motion * PAN_GAIN;
-      panPosition = Math.max(-1, Math.min(1, panPosition));
+      velocity += motion * VELOCITY_GAIN;
     }
+
+    // Velocity decays naturally — no hard stop, smooth bleed-off
+    velocity *= VELOCITY_DECAY;
+
+    // Clamp velocity so it can't go crazy
+    velocity = Math.max(-0.15, Math.min(0.15, velocity));
+
+    // Integrate velocity into position
+    panPosition += velocity * PAN_GAIN;
+    panPosition = Math.max(-1, Math.min(1, panPosition));
 
     setPan(panPosition);
 
     motionHint.textContent =
-      `source: ${reading.source} | axis: ${MOTION_AXIS} | raw: ${rawDisplay.toFixed(2)} | motion: ${motionDisplay.toFixed(2)} | pan: ${panPosition.toFixed(2)}`;
+      `pan: ${panPosition.toFixed(2)} | vel: ${velocity.toFixed(3)} | motion: ${motionDisplay.toFixed(2)}`;
 
     audio.volume = 1;
   }
@@ -436,11 +437,18 @@
     panReadout.textContent = smoothedPan < -0.1 ? 'Left' : smoothedPan > 0.1 ? 'Right' : 'Center';
   }
 
-  compassNeedle.parentElement.addEventListener('click', () => {
+  function resetPan() {
     panPosition = 0;
-    setPan(panPosition);
-    motionHint.textContent = 'Centered. Move left or right to slide the pan again.';
-  });
+    velocity = 0;
+    smoothedPan = 0;
+    panner.pan.value = 0;
+    compassNeedle.style.transform = 'translateX(-50%) translateY(-100%) rotate(0deg)';
+    panReadout.textContent = 'Center';
+    motionHint.textContent = 'Pan reset to center.';
+  }
+
+  compassNeedle.parentElement.addEventListener('click', resetPan);
+  document.getElementById('reset-btn').addEventListener('click', resetPan);
 
   motionBtn.addEventListener('click', async () => {
     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
