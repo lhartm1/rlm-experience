@@ -325,33 +325,35 @@
   let panPosition = 0;
 
   // Landscape left/right movement is often the y axis.
-  // If it feels backward, change MOTION_SIGN from 1 to -1.
-  const MOTION_AXIS = 'y';
-  const MOTION_SIGN = 1;
+  // Gesture-based motion mapping.
+  // This is better than continuously integrating the accelerometer because
+  // a real hand movement has a braking spike in the opposite direction.
+  // We use the FIRST strong impulse as the gesture direction, then ignore
+  // the rebound for a short window.
+  const MOTION_AXIS = 'y';       // try 'x' if the readout barely changes in landscape
+  const MOTION_SIGN = 1;         // change to -1 if left/right are reversed
 
   // TUNING VALUES
-  // Lower DEADZONE = smaller gestures are noticed.
-  // Higher PAN_SPEED = smaller physical gestures move the pan farther.
-  // Higher MOTION_SMOOTHING = less twitchy, but a little slower to respond.
-  const DEADZONE = 0.38;
-  const PAN_SPEED = 0.72;       // pan units per second at strong motion
-  const MOTION_RANGE = 2.6;     // expected useful motion range after filtering
-  const MAX_STEP = 0.025;       // max pan change per sensor event
-  const MOTION_SMOOTHING = 0.84;
-  const BASELINE_SMOOTHING = 0.985;
+  const CALIBRATION_MS = 650;    // neutral baseline time after enabling motion
+  const DEADZONE = 0.55;         // lower = more sensitive to small gestures
+  const GESTURE_WINDOW_MS = 420; // how long one left/right move lasts
+  const COOLDOWN_MS = 120;       // prevents double-triggering from one motion
+  const MIN_GESTURE_STEP = 0.045;// smallest pan nudge per recognized gesture
+  const MAX_GESTURE_STEP = 0.22; // largest pan nudge per recognized gesture
+  const GESTURE_RANGE = 3.0;     // lower = smaller gestures move pan more
+  const BASELINE_SMOOTHING = 0.995;
+  const DISPLAY_SMOOTHING = 0.86;
 
-  // This suppresses the little opposite-direction bump that happens when
-  // your hand stops moving and the phone decelerates.
-  const REVERSAL_SUPPRESS_MS = 220;
-  const REVERSAL_THRESHOLD = 0.95;
+  let motionBaseline = null;
+  let calibrationStart = 0;
+  let calibrated = false;
 
-  // Rolling baseline removes the steady gravity/orientation component,
-  // leaving mostly the left/right motion impulse.
-  let motionBaseline = 0;
-  let filteredMotion = 0;
-  let lastMotionTime = 0;
-  let lastIntentSign = 0;
-  let lastIntentTime = 0;
+  let gestureActive = false;
+  let gestureSign = 0;
+  let gesturePeak = 0;
+  let gestureStart = 0;
+  let lastGestureEnd = 0;
+  let displayMotion = 0;
 
   function fmt(s) {
     const m = Math.floor(s / 60);
@@ -392,59 +394,93 @@
     panReadout.textContent = smoothedPan < -0.1 ? 'Left' : smoothedPan > 0.1 ? 'Right' : 'Center';
   }
 
-  function handleMotion(e) {
-    const a = e.accelerationIncludingGravity;
-    if (!a) return;
+  function getMotionAxis(e) {
+    // Prefer gravity-removed acceleration when the browser provides it.
+    // Fall back to accelerationIncludingGravity, but subtract a calibrated baseline.
+    const plain = e.acceleration;
+    if (plain && plain[MOTION_AXIS] !== null && plain[MOTION_AXIS] !== undefined) {
+      return plain[MOTION_AXIS] * MOTION_SIGN;
+    }
 
-    const rawAxis = a[MOTION_AXIS];
-    if (rawAxis === null || rawAxis === undefined) return;
+    const withGravity = e.accelerationIncludingGravity;
+    if (!withGravity || withGravity[MOTION_AXIS] === null || withGravity[MOTION_AXIS] === undefined) {
+      return null;
+    }
+
+    const raw = withGravity[MOTION_AXIS];
+
+    if (motionBaseline === null) {
+      motionBaseline = raw;
+      calibrationStart = performance.now();
+      return 0;
+    }
+
+    if (!calibrated) {
+      motionBaseline = motionBaseline * 0.92 + raw * 0.08;
+      if (performance.now() - calibrationStart >= CALIBRATION_MS) {
+        calibrated = true;
+        motionHint.textContent = 'Ready. Move left or right to slide the pan.';
+      }
+      return 0;
+    }
+
+    // Very slow baseline tracking removes orientation/gravity bias without
+    // chasing quick hand gestures.
+    motionBaseline = motionBaseline * BASELINE_SMOOTHING + raw * (1 - BASELINE_SMOOTHING);
+    return (raw - motionBaseline) * MOTION_SIGN;
+  }
+
+  function handleMotion(e) {
+    const motion = getMotionAxis(e);
+    if (motion === null) return;
 
     const now = performance.now();
-    const dt = lastMotionTime ? Math.min((now - lastMotionTime) / 1000, 0.05) : 0.016;
-    lastMotionTime = now;
+    displayMotion = displayMotion * DISPLAY_SMOOTHING + motion * (1 - DISPLAY_SMOOTHING);
 
-    // Remove slow gravity/orientation offset so holding the phone still
-    // does not keep pushing the pan. This baseline moves very slowly.
-    motionBaseline = motionBaseline * BASELINE_SMOOTHING + rawAxis * (1 - BASELINE_SMOOTHING);
-    const unfilteredMotion = (rawAxis - motionBaseline) * MOTION_SIGN;
+    if (!calibrated) {
+      setPan(panPosition);
+      motionHint.textContent = 'Calibrating neutral position... hold the phone still';
+      return;
+    }
 
-    // Smooth the motion signal before deciding whether it is intentional.
-    filteredMotion = filteredMotion * MOTION_SMOOTHING + unfilteredMotion * (1 - MOTION_SMOOTHING);
+    const absMotion = Math.abs(motion);
+    const sign = Math.sign(motion);
 
-    const absMotion = Math.abs(filteredMotion);
-    const sign = Math.sign(filteredMotion);
+    // Start a gesture only on the first strong impulse.
+    if (!gestureActive && absMotion > DEADZONE && (now - lastGestureEnd) > COOLDOWN_MS) {
+      gestureActive = true;
+      gestureSign = sign;
+      gesturePeak = absMotion;
+      gestureStart = now;
+    }
 
-    if (absMotion > DEADZONE) {
-      const justReversed =
-        sign !== 0 &&
-        lastIntentSign !== 0 &&
-        sign !== lastIntentSign &&
-        (now - lastIntentTime) < REVERSAL_SUPPRESS_MS &&
-        absMotion < REVERSAL_THRESHOLD;
+    if (gestureActive) {
+      // Only track peaks in the original gesture direction.
+      // This ignores the opposite braking/rebound spike.
+      if (Math.sign(motion) === gestureSign) {
+        gesturePeak = Math.max(gesturePeak, absMotion);
+      }
 
-      if (!justReversed) {
-        // Map the filtered motion into a smaller, more playable gesture field.
-        // A smaller MOTION_RANGE makes smaller gestures move the pan more.
-        const normalized = Math.min(1, (absMotion - DEADZONE) / (MOTION_RANGE - DEADZONE));
-        let delta = sign * normalized * PAN_SPEED * dt;
-        delta = Math.max(-MAX_STEP, Math.min(MAX_STEP, delta));
+      if (now - gestureStart >= GESTURE_WINDOW_MS) {
+        const strength = Math.min(1, Math.max(0, (gesturePeak - DEADZONE) / (GESTURE_RANGE - DEADZONE)));
+        const shaped = Math.sqrt(strength); // small gestures still have a meaningful effect
+        const step = MIN_GESTURE_STEP + shaped * (MAX_GESTURE_STEP - MIN_GESTURE_STEP);
 
-        panPosition += delta;
+        panPosition += gestureSign * step;
         panPosition = Math.max(-1, Math.min(1, panPosition));
 
-        lastIntentSign = sign;
-        lastIntentTime = now;
+        gestureActive = false;
+        lastGestureEnd = now;
       }
     }
 
     setPan(panPosition);
 
     motionHint.textContent =
-      `axis: ${MOTION_AXIS} | raw: ${unfilteredMotion.toFixed(2)} | smooth: ${filteredMotion.toFixed(2)} | pan: ${panPosition.toFixed(2)}`;
+      `axis: ${MOTION_AXIS} | motion: ${displayMotion.toFixed(2)} | pan: ${panPosition.toFixed(2)}`;
 
     audio.volume = 1;
   }
-
 
   compassNeedle.parentElement.addEventListener('click', () => {
     panPosition = 0;
@@ -470,7 +506,11 @@
 
   function startMotion() {
     motionBtn.style.display = 'none';
-    motionHint.textContent = 'Move left or right — the pan will slide and stay where you leave it';
+    motionHint.textContent = 'Calibrating neutral position... hold the phone still';
+    motionBaseline = null;
+    calibrated = false;
+    gestureActive = false;
+    gesturePeak = 0;
     window.addEventListener('devicemotion', handleMotion);
   }
 </script>
