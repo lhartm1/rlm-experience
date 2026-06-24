@@ -16,7 +16,6 @@
     min-height: 100vh;
   }
 
-  /* Fixed background layer — pointer-events off so it never blocks scroll or taps */
   #bg {
     position: fixed;
     inset: 0;
@@ -25,17 +24,23 @@
     background-position: center 30%;
     z-index: 0;
     pointer-events: none;
+    filter: brightness(1.35) contrast(0.92);
   }
 
-  /* Dark overlay */
   #bg::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(5, 2, 0, 0.62);
+    background: linear-gradient(
+      to bottom,
+      rgba(5, 2, 0, 0.72) 0%,
+      rgba(5, 2, 0, 0.30) 30%,
+      rgba(5, 2, 0, 0.10) 50%,
+      rgba(5, 2, 0, 0.30) 70%,
+      rgba(5, 2, 0, 0.78) 100%
+    );
   }
 
-  /* Scrollable content sits above fixed bg */
   #ui {
     position: relative;
     z-index: 1;
@@ -49,11 +54,15 @@
   #title { text-align: center; }
 
   #eyebrow {
+    display: inline-block;
     font-size: 11px;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: #d4aa70;
+    color: #f0d898;
     margin-bottom: 10px;
+    background: rgba(5, 2, 0, 0.55);
+    padding: 5px 14px;
+    border-radius: 20px;
   }
 
   #main-title {
@@ -67,7 +76,7 @@
 
   #main-title em {
     font-style: italic;
-    color: #f0c070;
+    color: #fde9a0;
   }
 
   #center {
@@ -98,21 +107,24 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 9px;
+    background: rgba(5, 2, 0, 0.50);
+    padding: 12px 16px;
+    border-radius: 12px;
   }
 
   #progress-track {
     width: 100%;
-    height: 3px;
-    background: rgba(240, 200, 100, 0.2);
-    border-radius: 2px;
+    height: 5px;
+    background: rgba(240, 200, 100, 0.25);
+    border-radius: 3px;
     cursor: pointer;
   }
 
   #progress-fill {
     height: 100%;
     background: #f0c070;
-    border-radius: 2px;
+    border-radius: 3px;
     width: 0%;
   }
 
@@ -120,127 +132,67 @@
     display: flex;
     justify-content: space-between;
     font-size: 12px;
-    color: #c8a060;
+    color: #f0d898;
     font-family: 'Courier New', monospace;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
   }
 
-  #motion-area {
-    width: 100%;
-    max-width: 320px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-  }
-
-  #orientation-hint {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(240,200,100,0.09);
-    border: 1px solid rgba(240,200,100,0.28);
-    border-radius: 10px;
-    padding: 14px 16px;
-    width: 100%;
-  }
-
-  #orientation-text {
-    font-size: 13px;
-    color: #ffe8b0;
-    line-height: 1.55;
-  }
-
-  #orientation-text strong { color: #ffffff; }
-
-  #compass-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-
-  #compass {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    border: 1px solid rgba(240,200,100,0.3);
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  #compass-needle {
-    width: 2px;
-    height: 28px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform-origin: bottom center;
-    transform: translateX(-50%) translateY(-100%) rotate(0deg);
-  }
-
-  #needle-top {
-    width: 0;
-    height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-bottom: 16px solid #f0c070;
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  #needle-bottom {
-    width: 2px;
-    height: 14px;
-    background: #6a5040;
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  #compass-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: rgba(240,200,100,0.5);
-  }
-
-  #compass-label {
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #c8a060;
-  }
-
-  #pan-readout {
-    font-size: 12px;
-    color: #d4aa70;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.08em;
-  }
-
-  #motion-btn {
-    padding: 13px 30px;
+  #narrative-btn {
+    padding: 11px 28px;
     border-radius: 24px;
     border: 1px solid rgba(240, 200, 100, 0.45);
-    background: rgba(10, 5, 0, 0.65);
-    color: #f0c070;
-    font-size: 14px;
-    letter-spacing: 0.06em;
+    background: rgba(10, 5, 0, 0.60);
+    color: #f0d898;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     cursor: pointer;
     font-family: 'Georgia', serif;
     -webkit-tap-highlight-color: transparent;
   }
 
-  #motion-hint {
-    font-size: 12px;
-    color: #c8a060;
-    text-align: center;
-    line-height: 1.5;
+  #narrative {
+    display: none;
+    width: 100%;
+    max-width: 320px;
+    background: rgba(5, 2, 0, 0.65);
+    border-radius: 14px;
+    padding: 24px 22px;
+    color: #e8d8b0;
+    font-size: 15px;
+    line-height: 1.75;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  }
+
+  #narrative p + p {
+    margin-top: 16px;
+  }
+
+  #narrative .section-title {
+    font-size: 17px;
+    font-weight: normal;
+    font-style: normal;
+    color: #fff8ee;
+    letter-spacing: 0.02em;
+    margin-bottom: 12px;
+  }
+
+  #narrative .section-title em {
+    font-style: italic;
+  }
+
+  #narrative .section + .section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(240, 200, 100, 0.2);
+  }
+
+  #narrative p + p {
+    margin-top: 16px;
+  }
+
+  #narrative.open {
+    display: block;
   }
 </style>
 </head>
@@ -267,35 +219,18 @@
     </div>
   </div>
 
-  <div id="motion-area">
-    <div id="orientation-hint">
-      <svg width="44" height="36" viewBox="0 0 44 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-        <rect x="8" y="12" width="28" height="12" rx="2.5" stroke="#f0c070" stroke-width="1.4" fill="none"/>
-        <circle cx="33" cy="18" r="1.2" fill="#f0c070" opacity="0.6"/>
-        <path d="M7 18 Q3 10 7 4" stroke="#f0c070" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7"/>
-        <path d="M7 4 L5 7 M7 4 L10 5.5" stroke="#f0c070" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
-        <path d="M37 18 Q41 10 37 4" stroke="#f0c070" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7"/>
-        <path d="M37 4 L39 7 M37 4 L34 5.5" stroke="#f0c070" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
-      </svg>
-      <div id="orientation-text">Move your phone left or right to slide the pan position</div>
+  <button id="narrative-btn">Read the story</button>
+
+  <div id="narrative">
+    <div class="section">
+      <h2 class="section-title">A Dancehall on the Bayou</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+      <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum sed perspiciatis.</p>
     </div>
-
-    <div id="compass-wrap">
-      <div id="compass">
-        <div id="compass-needle">
-          <div id="needle-top"></div>
-          <div id="needle-bottom"></div>
-        </div>
-        <div id="compass-dot"></div>
-      </div>
-      <div id="compass-label">Direction</div>
-      <div id="pan-readout">Center</div>
+    <div class="section">
+      <h2 class="section-title"><em>Fiddlin&#8217; with the Finest</em> at the Rural Life Museum</h2>
+      <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet consectetur.</p>
     </div>
-
-    <button id="reset-btn" style="padding:10px 24px; border-radius:20px; border:1px solid rgba(240,200,100,0.35); background:rgba(10,5,0,0.55); color:#f0c070; font-size:13px; letter-spacing:0.06em; cursor:pointer; font-family:'Georgia',serif;">Reset to Center</button>
-
-    <button id="motion-btn">Enable motion control</button>
-    <div id="motion-hint">Move left or right to slide the music through the stereo field</div>
   </div>
 </div>
 
@@ -308,95 +243,12 @@
   const progressTrack = document.getElementById('progress-track');
   const tCurrent = document.getElementById('t-current');
   const tTotal = document.getElementById('t-total');
-  const compassNeedle = document.getElementById('compass-needle');
-  const panReadout = document.getElementById('pan-readout');
-  const motionBtn = document.getElementById('motion-btn');
-  const motionHint = document.getElementById('motion-hint');
+  const narrativeBtn = document.getElementById('narrative-btn');
+  const narrative = document.getElementById('narrative');
 
   const actx = new (window.AudioContext || window.webkitAudioContext)();
-  const panner = actx.createStereoPanner();
   const src = actx.createMediaElementSource(audio);
-  src.connect(panner);
-  panner.connect(actx.destination);
-
-  let smoothedPan = 0;
-  const PAN_SMOOTHING = 0.90;
-
-  // Velocity-based pan — integrates acceleration into velocity, velocity into position
-  // Equal-and-opposite deceleration cancels itself out in the integral
-  let velocity = 0;
-  let panPosition = 0;
-
-  const MOTION_AXIS = 'y';
-  const MOTION_SIGN = 1;
-  const DEADZONE = 0.15;        // ignore tiny jitter
-  const VELOCITY_DECAY = 0.80;  // how fast velocity bleeds off (lower = snappier stop)
-  const VELOCITY_GAIN = 0.08;   // how much acceleration feeds into velocity
-  const PAN_GAIN = 0.08;        // how much velocity moves the pan position
-
-  const BASELINE_SMOOTHING = 0.985;
-  let baseline = null;
-  let rawDisplay = 0;
-  let motionDisplay = 0;
-  let lastSensorTime = 0;
-
-  function getAxisValue(e) {
-    // Best case: real acceleration without gravity. This reads physical motion.
-    if (e.acceleration && e.acceleration[MOTION_AXIS] !== null && e.acceleration[MOTION_AXIS] !== undefined) {
-      const raw = e.acceleration[MOTION_AXIS] * MOTION_SIGN;
-      return { raw, motion: raw, source: 'acceleration' };
-    }
-
-    // Fallback: accelerationIncludingGravity. This includes the phone's resting angle,
-    // so we subtract a slow moving baseline. This is not a calibration gate; it starts immediately.
-    if (e.accelerationIncludingGravity && e.accelerationIncludingGravity[MOTION_AXIS] !== null && e.accelerationIncludingGravity[MOTION_AXIS] !== undefined) {
-      const raw = e.accelerationIncludingGravity[MOTION_AXIS] * MOTION_SIGN;
-      if (baseline === null) baseline = raw;
-      baseline = baseline * BASELINE_SMOOTHING + raw * (1 - BASELINE_SMOOTHING);
-      return { raw, motion: raw - baseline, source: 'includingGravity' };
-    }
-
-    return null;
-  }
-
-  function handleMotion(e) {
-    const reading = getAxisValue(e);
-    if (!reading) {
-      motionHint.textContent = 'Motion event received, but no usable axis values. Try another browser/device.';
-      return;
-    }
-
-    lastSensorTime = performance.now();
-
-    const raw = reading.raw || 0;
-    const motion = reading.motion || 0;
-
-    rawDisplay = rawDisplay * 0.8 + raw * 0.2;
-    motionDisplay = motionDisplay * 0.8 + motion * 0.2;
-
-    // C: Velocity integration — acceleration feeds velocity, velocity feeds position
-    // The equal-and-opposite deceleration on stop cancels out in the integral
-    if (Math.abs(motion) > DEADZONE) {
-      velocity += motion * VELOCITY_GAIN;
-    }
-
-    // Velocity decays naturally — no hard stop, smooth bleed-off
-    velocity *= VELOCITY_DECAY;
-
-    // Clamp velocity so it can't go crazy
-    velocity = Math.max(-0.15, Math.min(0.15, velocity));
-
-    // Integrate velocity into position
-    panPosition += velocity * PAN_GAIN;
-    panPosition = Math.max(-1, Math.min(1, panPosition));
-
-    setPan(panPosition);
-
-    motionHint.textContent =
-      `pan: ${panPosition.toFixed(2)} | vel: ${velocity.toFixed(3)} | motion: ${motionDisplay.toFixed(2)}`;
-
-    audio.volume = 1;
-  }
+  src.connect(actx.destination);
 
   audio.addEventListener('loadedmetadata', () => { tTotal.textContent = fmt(audio.duration); });
   audio.addEventListener('timeupdate', () => {
@@ -422,61 +274,15 @@
     audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
   });
 
+  narrativeBtn.addEventListener('click', () => {
+    const open = narrative.classList.toggle('open');
+    narrativeBtn.textContent = open ? 'Hide the story' : 'Read the story';
+  });
+
   function fmt(s) {
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
     return m + ':' + (sec < 10 ? '0' : '') + sec;
-  }
-
-  function setPan(val) {
-    val = Math.max(-1, Math.min(1, val));
-    smoothedPan = smoothedPan * PAN_SMOOTHING + val * (1 - PAN_SMOOTHING);
-    panner.pan.value = smoothedPan;
-    const deg = smoothedPan * 90;
-    compassNeedle.style.transform = `translateX(-50%) translateY(-100%) rotate(${deg}deg)`;
-    panReadout.textContent = smoothedPan < -0.1 ? 'Left' : smoothedPan > 0.1 ? 'Right' : 'Center';
-  }
-
-  function resetPan() {
-    panPosition = 0;
-    velocity = 0;
-    smoothedPan = 0;
-    panner.pan.value = 0;
-    compassNeedle.style.transform = 'translateX(-50%) translateY(-100%) rotate(0deg)';
-    panReadout.textContent = 'Center';
-    motionHint.textContent = 'Pan reset to center.';
-  }
-
-  compassNeedle.parentElement.addEventListener('click', resetPan);
-  document.getElementById('reset-btn').addEventListener('click', resetPan);
-
-  motionBtn.addEventListener('click', async () => {
-    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-      try {
-        const perm = await DeviceMotionEvent.requestPermission();
-        if (perm === 'granted') startMotion();
-        else motionHint.textContent = 'Motion permission denied.';
-      } catch(e) {
-        motionHint.textContent = 'Could not enable motion.';
-      }
-    } else if (window.DeviceMotionEvent) {
-      startMotion();
-    } else {
-      motionHint.textContent = 'Motion not supported on this device.';
-    }
-  });
-
-  function startMotion() {
-    motionBtn.style.display = 'none';
-    motionHint.textContent = 'Motion enabled. Move the phone left/right; waiting for first sensor value...';
-    baseline = null;
-    window.addEventListener('devicemotion', handleMotion);
-
-    setTimeout(() => {
-      if (!lastSensorTime) {
-        motionHint.textContent = 'No motion sensor values yet. On iPhone, check Safari + HTTPS + Motion & Orientation Access.';
-      }
-    }, 1200);
   }
 </script>
 </body>
