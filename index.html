@@ -16,6 +16,7 @@
     min-height: 100vh;
   }
 
+  /* ── Header ── */
   #header {
     padding: 52px 28px 40px;
     text-align: center;
@@ -39,6 +40,14 @@
     letter-spacing: 0.02em;
   }
 
+  #header-title em {
+    font-style: italic;
+    color: #fde9a0;
+  }
+
+
+
+  /* ── Grid ── */
   #grid {
     display: flex;
     flex-direction: column;
@@ -46,6 +55,7 @@
     padding: 0 0 80px;
   }
 
+  /* ── Card ── */
   .card {
     display: flex;
     flex-direction: row;
@@ -79,6 +89,7 @@
     display: block;
   }
 
+  /* Subtle vignette on the image */
   .card-image-wrap::after {
     content: '';
     position: absolute;
@@ -122,6 +133,7 @@
     flex-shrink: 0;
   }
 
+  /* ── Placeholder cards (coming soon) ── */
   .card.placeholder .card-image-wrap {
     background: rgba(240, 200, 100, 0.05);
     display: flex;
@@ -156,10 +168,12 @@
 <div id="header">
   <div id="header-eyebrow">LSU Rural Life Museum</div>
   <h1 id="header-title">An Immersive<br>Listening Experience</h1>
+
 </div>
 
 <div id="grid">
 
+  <!-- Live experience -->
   <a class="card" href="dancehall/index.html">
     <div class="card-image-wrap">
       <img src="dancehall/708616044_1631812425451533_4297030253631931157_n.jpg" alt="A Dancehall on the Bayou">
@@ -171,6 +185,7 @@
     <div class="card-arrow">›</div>
   </a>
 
+  <!-- Placeholder tiles -->
   <a class="card placeholder" href="#">
     <div class="card-image-wrap"><div class="placeholder-icon">♪</div></div>
     <div class="card-body">
