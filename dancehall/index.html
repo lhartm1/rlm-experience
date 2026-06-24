@@ -1,1 +1,285 @@
- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Dancehall on the Bayou</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { background: #0d0800; }
+
+  body {
+    font-family: 'Georgia', serif;
+    color: #f0e8d0;
+    background: transparent;
+    min-height: 100vh;
+  }
+
+  #bg {
+    position: fixed;
+    inset: 0;
+    background-image: url('708616044_1631812425451533_4297030253631931157_n.jpg');
+    background-size: cover;
+    background-position: center 30%;
+    z-index: 0;
+    pointer-events: none;
+    filter: brightness(1.35) contrast(0.92);
+  }
+
+  #bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(5, 2, 0, 0.72) 0%,
+      rgba(5, 2, 0, 0.30) 30%,
+      rgba(5, 2, 0, 0.10) 50%,
+      rgba(5, 2, 0, 0.30) 70%,
+      rgba(5, 2, 0, 0.78) 100%
+    );
+  }
+
+  #ui {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 52px 28px 80px;
+    gap: 52px;
+  }
+
+  #title { text-align: center; }
+
+  #eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #f0d898;
+    margin-bottom: 10px;
+    background: rgba(5, 2, 0, 0.55);
+    padding: 5px 14px;
+    border-radius: 20px;
+  }
+
+  #main-title {
+    font-size: 28px;
+    font-weight: normal;
+    line-height: 1.25;
+    color: #fff8ee;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.9);
+  }
+
+  #main-title em {
+    font-style: italic;
+    color: #fde9a0;
+  }
+
+  #center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  #play-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(240, 200, 100, 0.6);
+    background: rgba(10, 5, 0, 0.65);
+    color: #f0c070;
+    font-size: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #progress-area {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    background: rgba(5, 2, 0, 0.50);
+    padding: 12px 16px;
+    border-radius: 12px;
+  }
+
+  #progress-track {
+    width: 100%;
+    height: 5px;
+    background: rgba(240, 200, 100, 0.25);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  #progress-fill {
+    height: 100%;
+    background: #f0c070;
+    border-radius: 3px;
+    width: 0%;
+  }
+
+  #time-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #f0d898;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  }
+
+  #narrative-btn {
+    padding: 11px 28px;
+    border-radius: 24px;
+    border: 1px solid rgba(240, 200, 100, 0.45);
+    background: rgba(10, 5, 0, 0.60);
+    color: #f0d898;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #narrative {
+    display: none;
+    width: 100%;
+    max-width: 320px;
+    background: rgba(5, 2, 0, 0.65);
+    border-radius: 14px;
+    padding: 24px 22px;
+    color: #e8d8b0;
+    font-size: 15px;
+    line-height: 1.75;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  }
+
+  #narrative p + p {
+    margin-top: 16px;
+  }
+
+  #narrative .section-title {
+    font-size: 17px;
+    font-weight: normal;
+    font-style: normal;
+    color: #fff8ee;
+    letter-spacing: 0.02em;
+    margin-bottom: 12px;
+  }
+
+  #narrative .section-title em {
+    font-style: italic;
+  }
+
+  #narrative .section + .section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(240, 200, 100, 0.2);
+  }
+
+  #narrative.open {
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+
+<div id="ui">
+  <div id="title">
+    <div id="eyebrow">An immersive listening experience</div>
+    <h1 id="main-title">A Dancehall<br>on the <em>Bayou</em></h1>
+  </div>
+
+  <div id="center">
+    <button id="play-btn" aria-label="Play">&#9654;</button>
+    <div id="progress-area">
+      <div id="progress-track">
+        <div id="progress-fill"></div>
+      </div>
+      <div id="time-row">
+        <span id="t-current">0:00</span>
+        <span id="t-total">--:--</span>
+      </div>
+    </div>
+  </div>
+
+  <button id="narrative-btn">Read the story</button>
+
+  <div id="narrative">
+    <div class="section">
+      <h2 class="section-title">A Dancehall on the Bayou</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+      <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum sed perspiciatis.</p>
+    </div>
+    <div class="section">
+      <h2 class="section-title"><em>Fiddlin&#8217; with the Finest</em> at the Rural Life Museum</h2>
+      <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet consectetur.</p>
+    </div>
+  </div>
+</div>
+
+<audio id="audio" src="11_dance_hall.mp3" preload="auto"></audio>
+
+<script>
+  const audio = document.getElementById('audio');
+  const playBtn = document.getElementById('play-btn');
+  const progressFill = document.getElementById('progress-fill');
+  const progressTrack = document.getElementById('progress-track');
+  const tCurrent = document.getElementById('t-current');
+  const tTotal = document.getElementById('t-total');
+  const narrativeBtn = document.getElementById('narrative-btn');
+  const narrative = document.getElementById('narrative');
+
+  const actx = new (window.AudioContext || window.webkitAudioContext)();
+  const src = actx.createMediaElementSource(audio);
+  src.connect(actx.destination);
+
+  audio.addEventListener('loadedmetadata', () => { tTotal.textContent = fmt(audio.duration); });
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
+    progressFill.style.width = ((audio.currentTime / audio.duration) * 100) + '%';
+    tCurrent.textContent = fmt(audio.currentTime);
+  });
+  audio.addEventListener('ended', () => { playBtn.innerHTML = '&#9654;'; });
+
+  playBtn.addEventListener('click', () => {
+    if (actx.state === 'suspended') actx.resume();
+    if (audio.paused) {
+      audio.play();
+      playBtn.innerHTML = '&#9646;&#9646;';
+    } else {
+      audio.pause();
+      playBtn.innerHTML = '&#9654;';
+    }
+  });
+
+  progressTrack.addEventListener('click', (e) => {
+    const rect = progressTrack.getBoundingClientRect();
+    audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+  });
+
+  narrativeBtn.addEventListener('click', () => {
+    const open = narrative.classList.toggle('open');
+    narrativeBtn.textContent = open ? 'Hide the story' : 'Read the story';
+  });
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+</script>
+</body>
+</html> 
