@@ -2,52 +2,54 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>A Dancehall on the Bayou</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  html {
-    background: #0d0800;
-    /* Fix for iPhone Safari fixed background */
+  html, body {
     height: 100%;
+    background: #0d0800;
   }
 
   body {
     font-family: 'Georgia', serif;
     color: #f0e8d0;
     min-height: 100%;
-    /* Background on body instead of fixed div — works correctly on iPhone Safari */
-    background-color: #0d0800;
-    background-image:
-      linear-gradient(
-        to bottom,
-        rgba(5, 2, 0, 0.72) 0%,
-        rgba(5, 2, 0, 0.30) 30%,
-        rgba(5, 2, 0, 0.10) 50%,
-        rgba(5, 2, 0, 0.30) 70%,
-        rgba(5, 2, 0, 0.78) 100%
-      ),
-      url('708616044_1631812425451533_4297030253631931157_n.jpg');
-    background-size: cover;
-    background-position: center 30%;
-    background-attachment: fixed;
-    /* Brightness lift via filter isn't possible on body bg, so we compensate in the overlay above */
-    -webkit-background-size: cover;
+    position: relative;
   }
 
-  /* iPhone Safari doesn't support background-attachment: fixed well,
-     so we fall back to scroll for small touch screens */
-  @supports (-webkit-touch-callout: none) {
-    body {
-      background-attachment: scroll;
-      background-size: cover;
-    }
+  /* Background image div — most reliable cross-browser approach */
+  #bg {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 0;
+    background-color: #0d0800;
+    background-image: url('708616044_1631812425451533_4297030253631931157_n.jpg');
+    background-size: cover;
+    background-position: center 30%;
+    background-repeat: no-repeat;
+    /* Don't use background-attachment: fixed on mobile — breaks Safari */
+  }
+
+  /* Gradient overlay as a separate element — most reliable on Safari */
+  #bg-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 1;
+    background: linear-gradient(
+      to bottom,
+      rgba(5, 2, 0, 0.72) 0%,
+      rgba(5, 2, 0, 0.30) 30%,
+      rgba(5, 2, 0, 0.10) 50%,
+      rgba(5, 2, 0, 0.30) 70%,
+      rgba(5, 2, 0, 0.78) 100%
+    );
   }
 
   #ui {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -59,18 +61,18 @@
 
   #eyebrow {
     display: inline-block;
-    font-size: clamp(12px, 3.5vw, 15px);
+    font-size: 14px;
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: #f0d898;
     margin-bottom: 10px;
     background: rgba(5, 2, 0, 0.55);
-    padding: 5px 14px;
+    padding: 6px 16px;
     border-radius: 20px;
   }
 
   #main-title {
-    font-size: clamp(32px, 8vw, 42px);
+    font-size: 36px;
     font-weight: normal;
     line-height: 1.25;
     color: #fff8ee;
@@ -89,32 +91,36 @@
     align-items: center;
     gap: 28px;
     width: 100%;
-    max-width: min(90vw, 380px);
+    max-width: 340px;
   }
 
   #play-btn {
-    width: 80px;
-    height: 80px;
+    width: 88px;
+    height: 88px;
     border-radius: 50%;
     border: 1.5px solid rgba(240, 200, 100, 0.6);
     background: rgba(10, 5, 0, 0.65);
     color: #f0c070;
-    font-size: 30px;
+    font-size: 32px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
   }
 
   #progress-area {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 9px;
-    background: rgba(5, 2, 0, 0.50);
-    padding: 12px 16px;
+    gap: 10px;
+    background: rgba(5, 2, 0, 0.60);
+    padding: 14px 18px;
     border-radius: 12px;
+    /* Force Safari to render background */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 
   #progress-track {
@@ -135,37 +141,40 @@
   #time-row {
     display: flex;
     justify-content: space-between;
-    font-size: clamp(13px, 3.5vw, 15px);
+    font-size: 14px;
     color: #f0d898;
     font-family: 'Courier New', monospace;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
   }
 
   #narrative-btn {
-    padding: 11px 28px;
-    border-radius: 24px;
+    padding: 13px 32px;
+    border-radius: 28px;
     border: 1px solid rgba(240, 200, 100, 0.45);
     background: rgba(10, 5, 0, 0.60);
     color: #f0d898;
-    font-size: clamp(14px, 4vw, 16px);
+    font-size: 15px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     cursor: pointer;
     font-family: 'Georgia', serif;
     -webkit-tap-highlight-color: transparent;
+    /* Force Safari rendering */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 
   #narrative {
     display: none;
     width: 100%;
-    max-width: min(90vw, 380px);
-    background: rgba(5, 2, 0, 0.65);
+    max-width: 340px;
+    background: rgba(5, 2, 0, 0.70);
     border-radius: 14px;
-    padding: 24px 22px;
+    padding: 26px 22px;
     color: #e8d8b0;
-    font-size: clamp(16px, 4vw, 18px);
+    font-size: 17px;
     line-height: 1.75;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 
   #narrative p + p {
@@ -173,7 +182,7 @@
   }
 
   #narrative .section-title {
-    font-size: clamp(17px, 4.5vw, 20px);
+    font-size: 19px;
     font-weight: normal;
     font-style: normal;
     color: #fff8ee;
@@ -197,6 +206,9 @@
 </style>
 </head>
 <body>
+
+<div id="bg"></div>
+<div id="bg-overlay"></div>
 
 <div id="ui">
   <div id="title">
